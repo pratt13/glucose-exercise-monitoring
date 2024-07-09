@@ -1,0 +1,3 @@
+.env.local
+libre.log
+*/__pycache__/*
