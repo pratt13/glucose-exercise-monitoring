@@ -41,3 +41,7 @@ The caveat is, the amount of data stored is presumably limited (1 week), so a cs
 * Create an account, or use your existing `LibreView` login credentials.
 * On the libre app used to scan the sensor, click connected apps and enter the details.
 * Accept the link on `Libre Linkup` app.
+
+
+### Database
+A Postgres database to store that glucose records.
