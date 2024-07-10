@@ -12,7 +12,7 @@ load_dotenv(".env.local")
 # Logging
 # TODO: Properly implement
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename="libre.log", level=logging.DEBUG)
+logging.basicConfig(filename="libre.log", format='%(asctime)s %(levelname)-8s %(message)s', level=logging.DEBUG)
 
 # token_info
 # # Obtain the access token code not shown...
@@ -48,7 +48,7 @@ class AuthenticationManagement:
 
     def login(self, retries=3, delay=60 * 2):
         """Log in to LibreLinkUp and retrieve JWT token."""
-        logger.info("Logging in")
+        logger.debug("login()")
         endpoint = "/llu/auth/login"
         payload = {"email": self.email, "password": self.password}
 
@@ -59,6 +59,7 @@ class AuthenticationManagement:
                 response.raise_for_status()
                 data = response.json()
                 token = data.get("data", {}).get("authTicket", {}).get("token", {})
+                self._expiration_date = datetime.fromtimestamp(data.get("data").get("authTicket", {}).get("expires"))
                 logger.debug(f"Successfully retrieved token for {self.email}")
                 return token
             except requests.exceptions.HTTPError as ex:
@@ -74,17 +75,18 @@ class AuthenticationManagement:
         """
         Refresh token
         """
+        logger.debug("refresh_token()")
         self.token = self.login(**kwargs)
 
-    def get_fresh_token(self):
+    def get_token(self):
         """
         Get fresh token
         """
-        token_expires_time = datetime.now() + timedelta(seconds=self.token.expires_in)
-        token_expires_time = token_expires_time + timedelta(minutes=-2)
-
-        if datetime.now() >= token_expires_time:
+        logger.debug("get_token()")
+        if datetime.now() >= self._expiration_date + timedelta(minutes=-2):
             self.refresh_token()
+        else:
+            logger.debug("Using existing token")
         return self.token
 
 
@@ -113,7 +115,7 @@ class Glucose:
         Retrieve patient IDs from LibreLinkUp.
         """
         logger.info(f"Getting patient ids for email")
-        token = self.auth_manager.get_fresh_token()
+        token = self.auth_manager.get_token()
         endpoint = "/llu/connections"
         headers = {**HEADERS, "Authorization": f"Bearer {token}"}
         response = requests.get(BASE_URL + endpoint, headers=headers)
@@ -124,7 +126,7 @@ class Glucose:
     def get_cgm_data(self, patient_id):
         """Retrieve CGM data for a specific patient from LibreLinkUp."""
         logger.info(f"Getting CGM data")
-        token = self.auth_manager.get_fresh_token()
+        token = self.auth_manager.get_token()
         endpoint = f"/llu/connections/{patient_id}/graph"
         headers = {**HEADERS, "Authorization": f"Bearer {token}"}
         response = requests.get(BASE_URL + endpoint, headers=headers)
