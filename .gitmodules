@@ -1,0 +1,3 @@
+[submodule "diabetes-db"]
+	path = diabetes-db
+	url = git@github.com:pratt13/diabetes-db.git
