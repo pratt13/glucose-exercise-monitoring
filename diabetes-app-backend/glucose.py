@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from constants import BASE_URL, HEADERS
+from database_manager import PostgresManager
 
 # Move these user credentials to a DB
 load_dotenv(".env.local")
@@ -12,17 +13,9 @@ load_dotenv(".env.local")
 # Logging
 # TODO: Properly implement
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename="libre.log", format='%(asctime)s %(levelname)-8s %(message)s', level=logging.DEBUG)
-
-# token_info
-# # Obtain the access token code not shown...
-# token_expires_time = datetime.now() + timedelta(seconds = token_info.expires_in)
-# token_expires_time = token_expires_time + timedelta(seconds = -1); # One second just in case
-# # Your app’s code doing things ...
-# if datetime.now() < token_expires_time:
-#     # Token is good - you can use it to make API calls
-# else:
-#     # Token expired - obtain a new one
+logging.basicConfig(
+    filename="libre.log", format="%(asctime)s %(levelname)-8s %(message)s", level=logging.DEBUG
+)
 
 
 class AuthenticationManagement:
@@ -59,7 +52,9 @@ class AuthenticationManagement:
                 response.raise_for_status()
                 data = response.json()
                 token = data.get("data", {}).get("authTicket", {}).get("token", {})
-                self._expiration_date = datetime.fromtimestamp(data.get("data").get("authTicket", {}).get("expires"))
+                self._expiration_date = datetime.fromtimestamp(
+                    data.get("data").get("authTicket", {}).get("expires")
+                )
                 logger.debug(f"Successfully retrieved token for {self.email}")
                 return token
             except requests.exceptions.HTTPError as ex:
@@ -95,12 +90,13 @@ class Glucose:
     Simple class to poll data from the LibreLinkUpApp
     """
 
-    def __init__(self, email, password, auth):
+    def __init__(self, email, password, auth, db_manager):
         # Initialise auth
         self.auth_manager = auth(email, password)
         self.email = email
         self.password = password
         self.patient_ids = self.get_patient_ids()
+        self.db_manager = db_manager(os.environ["DB_USERNAME"], os.environ["DB_PASSWORD"], os.environ["DB_HOST"], os.environ["DB_NAME"], )
 
     @property
     def patient_ids(self):
@@ -131,13 +127,16 @@ class Glucose:
         headers = {**HEADERS, "Authorization": f"Bearer {token}"}
         response = requests.get(BASE_URL + endpoint, headers=headers)
         response.raise_for_status()
-        return response.json()
+        resp = response.json()
+        print(resp)
+        self.db_manager.save_glucose_data(resp)
+        return resp
 
 
 # Dummy test for refresh
 email = os.getenv("LIBRE_EMAIL")
 password = os.getenv("LIBRE_PASSWORD")
-g = Glucose(email, password, AuthenticationManagement)
+g = Glucose(email, password, AuthenticationManagement, PostgresManager)
 patient_ids = g.patient_ids
 count = 0
 while count < 10:
