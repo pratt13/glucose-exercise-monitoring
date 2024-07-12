@@ -7,3 +7,5 @@ HEADERS = {
     "product": "llu.android",
     "version": "4.7",
 }
+DATETIME_FORMAT = "%m/%d/%Y %I:%M:%S %p"
+DATABASE_TABLE = "glucose_times"
