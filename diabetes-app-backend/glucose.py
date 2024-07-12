@@ -96,7 +96,12 @@ class Glucose:
         self.email = email
         self.password = password
         self.patient_ids = self.get_patient_ids()
-        self.db_manager = db_manager(os.environ["DB_USERNAME"], os.environ["DB_PASSWORD"], os.environ["DB_HOST"], os.environ["DB_NAME"], )
+        self.db_manager = db_manager(
+            os.environ["DB_USERNAME"],
+            os.environ["DB_PASSWORD"],
+            os.environ["DB_HOST"],
+            os.environ["DB_NAME"],
+        )
 
     @property
     def patient_ids(self):
@@ -128,14 +133,52 @@ class Glucose:
         response = requests.get(BASE_URL + endpoint, headers=headers)
         response.raise_for_status()
         resp = response.json()
-        print(resp)
-        self.db_manager.save_glucose_data(resp)
+        logger.debug(f"Response: {resp}")
+        logger.debug("Saving to database")
+        logger.debug(self.db_manager.conn_params)
+        # If no record set really far back
+        last_record = self.db_manager.get_last_record()
+        last_timestamp, max_id = last_record
+        self.db_manager.save_glucose_data(
+            self.format_cgm_data(last_timestamp, max_id, resp.get("data").get("graphData"))
+        )
         return resp
+
+    @staticmethod
+    def format_cgm_data(last_timestamp, max_id, data):
+        """
+        Get the current data stored in the database
+        Filter out any records already in the database
+        Return only the not previously recorded data
+
+        :data:
+            {'FactoryTimestamp': '7/11/2024 3: 22: 43 AM', 'Timestamp': '7/11/2024 4: 22: 43 AM', 'type': 0, 'ValueInMgPerDl': 80, 'MeasurementColor': 1, 'GlucoseUnits': 0, 'Value': 4.4, 'isHigh': False, 'isLow': False
+        """
+        logging.info("format_cgm_data()")
+        filtered_records = [
+            (record.get("Value"), record.get("Timestamp"))
+            for record in data
+            if (
+                datetime.strptime(record.get("Timestamp"), "%d/%m/%Y %H:%M:%S %p") - last_timestamp
+            ).seconds
+            > 0
+        ]
+        sorted_records = sorted(
+            filtered_records, key=lambda x: datetime.strptime(x[1], "%d/%m/%Y %H:%M:%S %p")
+        )
+        logging.debug(f"Adding records: {sorted_records}")
+        return [
+            (idx + max_id + 1, sorted_records[idx][0], sorted_records[idx][1])
+            for idx in range(len(sorted_records))
+        ]
 
 
 # Dummy test for refresh
 email = os.getenv("LIBRE_EMAIL")
 password = os.getenv("LIBRE_PASSWORD")
+# postgres_manager = PostgresManager(
+#     os.getenv("DB_USERNAME"), os.getenv("DB_PASSWORD"), os.getenv("DB_HOST"), os.getenv("DB_NAME")
+# )
 g = Glucose(email, password, AuthenticationManagement, PostgresManager)
 patient_ids = g.patient_ids
 count = 0
@@ -143,5 +186,5 @@ while count < 10:
     print(f"Iteration: {count+1}")
     for patient_id in patient_ids:
         g.get_cgm_data(patient_id)
-    time.sleep(60 * 15)
+    time.sleep(60 * 1)
     count += 1
