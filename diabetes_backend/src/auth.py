@@ -41,8 +41,10 @@ class AuthenticationManagement:
                 response.raise_for_status()
                 data = response.json()
                 token = data.get("data", {}).get("authTicket", {}).get("token", {})
+                if not token:
+                    raise ValueError("Failed to get token")
                 self._expiration_date = datetime.fromtimestamp(
-                    data.get("data").get("authTicket", {}).get("expires")
+                    data.get("data", {}).get("authTicket", {}).get("expires")
                 )
                 logger.debug(f"Successfully retrieved token for {self.email}")
                 return token
@@ -54,6 +56,10 @@ class AuthenticationManagement:
                     time.sleep(delay)
                     continue
                 raise ex
+            except ValueError as ex:
+                logger.warning(f"Error: {ex}")
+                if attempt >= retries:
+                    raise ex
 
     def refresh_token(self, **kwargs):
         """

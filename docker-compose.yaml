@@ -1,0 +1,21 @@
+services:
+  db:
+    image: ${DB_IMAGE_NAME:-diabetes-db}:${DB_IMAGE_VERSION:-latest}
+    container_name: app-db
+    env_file:
+      - .postgres.env
+    networks:
+      - app
+  backend:
+    image: ${BACKEND_IMAGE_NAME:-diabetes-backend}:${BACKEND_IMAGE_VERSION:-latest}
+    container_name: app-backend
+    env_file:
+      - ${BACKEND_ENV_FILE:-.backend.env}
+    networks:
+      - app
+    depends_on:
+      - db
+networks:
+  app:
+    name: app
+    

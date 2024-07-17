@@ -9,14 +9,21 @@ from constants import BASE_URL, HEADERS, DATETIME_FORMAT
 from database_manager import PostgresManager
 from auth import AuthenticationManagement
 
-# Move these user credentials to a DB
-load_dotenv(".env.local")
+# Environment variables - default to non-docker patterns
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_FILE = os.getenv("LOG_FILE", "glucose.log")
+ENV_FILE = os.getenv("ENV_FILE", ".env.local")
+
+# Load configuration - mainly for outside docker
+load_dotenv(ENV_FILE)
 
 # Logging
 # TODO: Properly implement
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    filename="libre.log", format="%(asctime)s %(levelname)-8s %(message)s", level=logging.DEBUG
+    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    level=logging.getLevelName(LOG_LEVEL),
 )
 
 
