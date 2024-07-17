@@ -6,4 +6,9 @@ pushd "diabetes-db"
 ./build.sh
 popd
 
+echo "Building diabetes backend"
+pushd "diabetes_backend"
+./build.sh
+popd
+
 echo "Finished building docker images"

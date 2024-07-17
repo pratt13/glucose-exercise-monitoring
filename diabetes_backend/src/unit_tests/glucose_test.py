@@ -2,7 +2,10 @@ import unittest, os, sys
 from unittest.mock import patch
 from datetime import datetime as dt
 from requests import HTTPError
-from constants import DATETIME_FORMAT, HEADERS
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from constants import DATA_TYPES, DATETIME_FORMAT, HEADERS
 from glucose import Glucose
 
 ERROR_MSG = "My test error"
@@ -37,13 +40,84 @@ POSTGRES_ENV = {
 class TestGlucose(unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.test_data_1 = {
+            "FactoryTimestamp": "7/11/2024 3:22:43 AM",
+            "Timestamp": "7/11/2024 4:22:43 AM",
+            "type": 0,
+            "ValueInMgPerDl": 80,
+            "MeasurementColor": 1,
+            "GlucoseUnits": 0,
+            "Value": 4.4,
+            "isHigh": False,
+            "isLow": False,
+        }
+        self.test_data_2 = {
+            "FactoryTimestamp": "7/11/2022 3:22:43 AM",
+            "Timestamp": "7/11/2024 4:22:43 AM",
+            "type": 0,
+            "ValueInMgPerDl": 80,
+            "MeasurementColor": 1,
+            "GlucoseUnits": 0,
+            "Value": 4.4,
+            "isHigh": False,
+            "isLow": False,
+        }
+        self.test_data_3 = {
+            "FactoryTimestamp": "7/11/2024 3:22:43 AM",
+            "Timestamp": "7/11/2024 4:22:43 AM",
+            "type": 0,
+            "ValueInMgPerDl": 80,
+            "MeasurementColor": 1,
+            "GlucoseUnits": 0,
+            "Value": 4.4,
+            "isHigh": False,
+            "isLow": False,
+        }
 
-    # def test_format_cgm_data(self, mock_requests, mock_auth_manager, mock_database_manager):
-    #     mock_auth_manager.get_token.return_value = "Fake token"
-    #     mock_requests.return_value = MockRequest
+    @patch("requests.get")
+    @patch("auth.AuthenticationManagement", autospec=True)
+    @patch("database_manager.PostgresManager")
+    def test_format_cgm_data(self, mock_requests, mock_auth_manager, mock_database_manager):
+        # Format mocks
+        mock_token = "mock_token"
+        mock_auth_manager.return_value.get_token.return_value = mock_token
+        mock_patient_ids = [{"patientId": "123"}, {"patientId": "456"}]
+        mock_requests.return_value = MockRequest(mock_patient_ids)
 
-    #     glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-    #     # print(mock_auth_manager.call_args)
+        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
+
+        # All records are returned
+        res = glucose.format_cgm_data(
+            "7/11/1000 3:22:43 AM", 0, [self.test_data_1, self.test_data_2, self.test_data_3]
+        )
+        self.assertEqual(
+            [
+                (1, self.test_data_1.get("Value"), self.test_data_1.get("Timestamp")),
+                (2, self.test_data_2.get("Value"), self.test_data_2.get("Timestamp")),
+                (3, self.test_data_3.get("Value"), self.test_data_3.get("Timestamp")),
+            ],
+            res,
+        )
+
+        # Some records are returned
+        res = glucose.format_cgm_data(
+            "1/11/2024 3:22:43 AM", 2, [self.test_data_1, self.test_data_2, self.test_data_3]
+        )
+        self.assertEqual(
+            [
+                (3, self.test_data_3.get("Value"), self.test_data_3.get("Timestamp")),
+            ],
+            res,
+        )
+
+        # No records are returned
+        res = glucose.format_cgm_data(
+            "7/11/3000 3:22:43 AM", 3, [self.test_data_1, self.test_data_2, self.test_data_3]
+        )
+        self.assertEqual(
+            [],
+            res,
+        )
 
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
@@ -169,21 +243,7 @@ class TestGlucose(unittest.TestCase):
     @patch("database_manager.PostgresManager")
     def test_update_cgm_data_success(self, mock_database_manager, mock_auth_manager, mock_requests):
         # Format mocks
-        mock_data = {
-            "graphData": [
-                {
-                    "FactoryTimestamp": "7/11/2024 3:22:43 AM",
-                    "Timestamp": "7/11/2024 4:22:43 AM",
-                    "type": 0,
-                    "ValueInMgPerDl": 80,
-                    "MeasurementColor": 1,
-                    "GlucoseUnits": 0,
-                    "Value": 4.4,
-                    "isHigh": False,
-                    "isLow": False,
-                }
-            ]
-        }
+        mock_data = {"graphData": [self.test_data_1]}
         mock_token = "mock_token"
         mock_auth_manager.return_value.get_token.return_value = mock_token
         mock_requests.return_value = MockRequest(mock_data)
@@ -207,10 +267,10 @@ class TestGlucose(unittest.TestCase):
         mock_database_manager.assert_called_once()
         mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
         mock_database_manager.return_value.get_last_record.assert_called_once()
-        mock_database_manager.return_value.get_last_record.assert_called_once_with()
-        mock_database_manager.return_value.save_glucose_data.assert_called_once()
-        mock_database_manager.return_value.save_glucose_data.assert_called_once_with(
-            [(2, 4.4, "7/11/2024 4:22:43 AM")]
+        mock_database_manager.return_value.get_last_record.assert_called_once_with(DATA_TYPES.LIBRE)
+        mock_database_manager.return_value.save_data.assert_called_once()
+        mock_database_manager.return_value.save_data.assert_called_once_with(
+            [(2, 4.4, "7/11/2024 4:22:43 AM")], DATA_TYPES.LIBRE
         )
 
     @patch("auth.AuthenticationManagement", autospec=True)

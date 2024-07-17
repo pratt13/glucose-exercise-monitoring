@@ -1,23 +1,12 @@
 import os
 import requests
-import time
 import logging
 from datetime import datetime
-from dotenv import load_dotenv
 
-from constants import BASE_URL, HEADERS, DATETIME_FORMAT
-from database_manager import PostgresManager
-from auth import AuthenticationManagement
+from constants import BASE_URL, DATA_TYPES, HEADERS, DATETIME_FORMAT
 
-# Move these user credentials to a DB
-load_dotenv(".env.local")
 
-# Logging
-# TODO: Properly implement
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    filename="libre.log", format="%(asctime)s %(levelname)-8s %(message)s", level=logging.DEBUG
-)
 
 
 class Glucose:
@@ -60,13 +49,26 @@ class Glucose:
         response.raise_for_status()
         return response.json()
 
+    def _get_last_record(self):
+        """
+        Get last record
+        """
+        logger.debug("_get_last_record()")
+        return self.db_manager.get_last_record(DATA_TYPES.LIBRE)
+
+    def _save_data(self, data):
+        """
+        Save date
+        """
+        logger.debug(f"_save_data(): {data}")
+        self.db_manager.save_data(data, DATA_TYPES.LIBRE)
+
     def update_cgm_data(self, patient_id):
         logger.info("update_cgm_data()")
         data = self.get_cgm_data(patient_id)
-        # If no record set really far back
-        last_record = self.db_manager.get_last_record()
+        last_record = self._get_last_record()
         last_timestamp, max_id = last_record
-        self.db_manager.save_glucose_data(
+        self._save_data(
             self.format_cgm_data(last_timestamp, max_id, data.get("data").get("graphData"))
         )
 
@@ -80,8 +82,7 @@ class Glucose:
         :data:
             {'FactoryTimestamp': '7/11/2024 3: 22: 43 AM', 'Timestamp': '7/11/2024 4: 22: 43 AM', 'type': 0, 'ValueInMgPerDl': 80, 'MeasurementColor': 1, 'GlucoseUnits': 0, 'Value': 4.4, 'isHigh': False, 'isLow': False
         """
-        logging.info("format_cgm_data()")
-        logging.debug(f"Last timestamp {last_timestamp}")
+        logging.debug("format_cgm_data({last_timestamp}, {max_id}, {data})")
         # Filter records the new ones must be at least one second apart
         filtered_records = [
             (record.get("Value"), record.get("Timestamp"))
@@ -100,18 +101,3 @@ class Glucose:
         ]
         logging.debug(f"Adding records: {records_to_add}")
         return records_to_add
-
-
-if __name__ == "__main__":
-    # Dummy test for refresh
-    email = os.getenv("LIBRE_EMAIL")
-    password = os.getenv("LIBRE_PASSWORD")
-    g = Glucose(email, password, AuthenticationManagement, PostgresManager)
-    count = 0
-    while count < 10:
-        print(f"Iteration: {count+1}")
-        patient_ids = g.get_patient_ids()
-        for patient_id in patient_ids:
-            g.update_cgm_data(patient_id)
-        time.sleep(60 * 1)
-        count += 1
