@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2 import sql
 import datetime
 import logging
-from constants import DATABASE_TABLE
+from constants import DATA_TYPES, DATABASE_TABLE, TABLE_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -38,18 +38,102 @@ class PostgresManager:
         # leaving contexts doesn't close the connection
         conn.close()
 
-    def get_last_record(self):
+    def save_data(self, data, data_type):
+        """
+        Save the data to the associated table
+        """
+        logging.debug("save_data()")
+        self._validate_data_type(data_type)
+
+        logging.debug(f"Trying to save data into {TABLE_SCHEMA.NAME[data_type]}")
+        conn = psycopg2.connect(**self.conn_params)
+        # FIX
+        with conn:
+            with conn.cursor() as curs:
+                #         query_string = sql.SQL("INSERT INTO {} ({}) VALUES {}").format(
+                # sql.Identifier(table),
+                # sql.SQL(', ').join(map(sql.Identifier, columns)),
+                # sql.SQL(', ').join(sql.Placeholder()*len(values)),
+                # ).as_string(cur)
+                # logger.info(data)
+                # logger.info(TABLE_SCHEMA.NAME[data_type])
+                # logger.info(sql.Identifier(TABLE_SCHEMA.NAME[data_type]))
+                # logger.info(
+                #     sql.SQL(", ").join(map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type]))
+                # )
+                # fmt: off
+                query  = sql.SQL(
+                        """INSERT INTO {table} ({table_columns}) VALUES ({entries})""").format(
+                            table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
+                            table_columns=sql.SQL(', ').join(map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
+                            ),
+                            entries=sql.SQL(', ').join(sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[data_type])))
+                        
+                    
+            #     query  = sql.SQL(
+            #             """INSERT INTO {table} (id,
+            # distance,
+            # activity_type,
+            # moving_time,
+            # elapsed_time,
+            # start_time,
+            # end_time,
+            # start_latitude,
+            # end_latitude,
+            # start_longitude,
+            # end_longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""").format(
+            #                 table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
+            #             )
+                    
+            #     query  = sql.SQL(
+            #             """INSERT INTO activities (id,
+            # distance,
+            # activity_type,
+            # moving_time,
+            # elapsed_time,
+            # start_time,
+            # end_time,
+            # start_latitude,
+            # end_latitude,
+            # start_longitude,
+            # end_longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""")
+                # logger.info(query.as_string(conn))
+                curs.executemany(
+                    query,
+                    data,
+                )
+
+                # fmt: on
+        # leaving contexts doesn't close the connection
+        conn.close()
+
+    def _validate_data_type(self, data_type):
+        if data_type not in (DATA_TYPES.LIBRE, DATA_TYPES.STRAVA):
+            raise ValueError(f"Invalid data_type {data_type}")
+
+    def _get_default_last_record(self, data_type):
+        self._validate_data_type(data_type)
+        if data_type == DATA_TYPES.LIBRE:
+            return (datetime.datetime(1990, 7, 11, 19, 45, 55), 0)
+        if data_type == DATA_TYPES.STRAVA:
+            return 0
+
+    def get_last_record(self, data_type):
         """Fetch the last record in the table"""
         logging.debug("get_last_record()")
+        self._validate_data_type(data_type)
+        logger.debug(f"Saving to {TABLE_SCHEMA.NAME[data_type]}")
         conn = psycopg2.connect(**self.conn_params)
 
         with conn:
             with conn.cursor() as curs:
                 curs.execute(
                     sql.SQL(
-                        "SELECT timestamp, id FROM {table} ORDER BY timestamp DESC LIMIT 1"
+                        "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
                     ).format(
-                        table=sql.Identifier(DATABASE_TABLE),
+                        table_columns=sql.Identifier(TABLE_SCHEMA.SEARCH_COLUMNS[data_type]),
+                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[data_type]),
+                        table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
                     )
                 )
                 res = curs.fetchone()
@@ -57,4 +141,4 @@ class PostgresManager:
         # leaving contexts doesn't close the connection
         conn.close()
 
-        return res or (datetime.datetime(1990, 7, 11, 19, 45, 55), 0)
+        return res or self._get_default_last_record(data_type)

@@ -1,30 +1,12 @@
 import os
 import requests
-import time
 import logging
 from datetime import datetime
-from dotenv import load_dotenv
 
 from constants import BASE_URL, HEADERS, DATETIME_FORMAT
-from database_manager import PostgresManager
-from auth import AuthenticationManagement
 
-# Environment variables - default to non-docker patterns
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOG_FILE = os.getenv("LOG_FILE", "glucose.log")
-ENV_FILE = os.getenv("ENV_FILE", ".env.local")
 
-# Load configuration - mainly for outside docker
-load_dotenv(ENV_FILE)
-
-# Logging
-# TODO: Properly implement
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
-    format="%(asctime)s %(levelname)-8s %(message)s",
-    level=logging.getLevelName(LOG_LEVEL),
-)
 
 
 class Glucose:
@@ -107,18 +89,3 @@ class Glucose:
         ]
         logging.debug(f"Adding records: {records_to_add}")
         return records_to_add
-
-
-if __name__ == "__main__":
-    # Dummy test for refresh
-    email = os.getenv("LIBRE_EMAIL")
-    password = os.getenv("LIBRE_PASSWORD")
-    g = Glucose(email, password, AuthenticationManagement, PostgresManager)
-    count = 0
-    while count < 10:
-        print(f"Iteration: {count+1}")
-        patient_ids = g.get_patient_ids()
-        for patient_id in patient_ids:
-            g.update_cgm_data(patient_id)
-        time.sleep(60 * 1)
-        count += 1
