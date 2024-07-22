@@ -3,7 +3,8 @@ import requests
 import logging
 
 
-from constants import DATA_TYPES, STRAVA_BASE_URL
+from constants import DATA_TYPES, STRAVA_BASE_URL, STRAVA_DATETIME
+from utils import compute_epoch
 
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ class Strava:
         access_token = res.json().get("access_token")
         return access_token
 
-    def get_activity_data(self, records_per_page=1, page=1):
+    def get_activity_data(self, **kwargs):
         """
         Get the activity data from strava
         Records per page are the number of records to fetch.
@@ -79,7 +80,7 @@ class Strava:
         response: dict = requests.get(
             f"{STRAVA_BASE_URL}/api/v3/athlete/activities",
             headers=headers,
-            params={"per_page": records_per_page, "page": page},
+            params=kwargs,
         )
         response.raise_for_status()
         activity_data = response.json()
@@ -87,7 +88,16 @@ class Strava:
 
     def _save_data(self, data):
         logger.debug("_save_data()")
+        logger.debug(f"Saving {data}")
         self.db_manager.save_data(data, DATA_TYPES.STRAVA)
+
+    def _get_last_record(self):
+        """
+        Get the last record's timestamp in the database
+        If none present, return the start of time
+        """
+        logger.debug("_get_last_record()")
+        return self.db_manager.get_last_record(DATA_TYPES.STRAVA)
 
     @staticmethod
     def _format_activity_data(record):
@@ -118,27 +128,14 @@ class Strava:
         Add any new records to the database
         """
         logger.debug("update_data()")
-        # # data = self.get_activity_data(records_per_page=records_per_page, page=page)
-        # formatted_data = [list(self._format_activity_data(record).values()) for record in data]
-        formatted_data = {
-            "id": 11889253225,
-            "distance": 7445.9,
-            "activity_type": "Run",
-            "moving_time": 2604,
-            "elapsed_time": 2731,
-            "start_time": "2024-07-14T08:47:01Z",
-            "end_time": "2024-07-14T08:47:01Z",
-            "start_latitude": 51.308409590274096,
-            "end_latitude": 51.30836768075824,
-            "start_longitude": -2.5024617835879326,
-            "end_longitude": -2.5024617835879326,
-        }
-        logger.debug("******************")
-        logger.debug([str(v) for v in list(formatted_data.values())])
-        logger.debug(
-            [
-                tuple([str(v) for v in list(formatted_data.values())]),
-                tuple([str(v) for v in list(formatted_data.values())]),
-            ]
+        last_record = self.db_manager.get_last_record(DATA_TYPES.STRAVA)[0]
+        logger.debug(f"Last record: {last_record}")
+        data = self.get_activity_data(
+            after=compute_epoch(last_record, STRAVA_DATETIME),
+            records_per_page=records_per_page,
+            page=page,
         )
-        self._save_data([tuple([str(v) for v in list(formatted_data.values())])])
+        formatted_data = [
+            tuple(list(self._format_activity_data(record).values())) for record in data
+        ]
+        self._save_data(formatted_data)
