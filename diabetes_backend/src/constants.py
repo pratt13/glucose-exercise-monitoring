@@ -29,24 +29,23 @@ class DATA_TYPES:
     LIBRE = "LIBRE"
 
 
-# fmt: off
 class TABLE_SCHEMA:
-    NAME = {DATA_TYPES.STRAVA: "activities", DATA_TYPES.LIBRE: 'glucose'}
+    NAME = {DATA_TYPES.STRAVA: "activities", DATA_TYPES.LIBRE: "glucose"}
     COLUMNS = {
-        DATA_TYPES.STRAVA: ['id',
-            'distance',
-            'activity_type',
-            'moving_time',
-            'elapsed_time',
-            'start_time',
-            'end_time',
-            'start_latitude',
-            'end_latitude',
-            'start_longitude',
-            'end_longitude'],
-        DATA_TYPES.LIBRE: ['id', 'glucose', 'timestamp'],
+        DATA_TYPES.STRAVA: [
+            "id",
+            "distance",
+            "activity_type",
+            "moving_time",
+            "elapsed_time",
+            "start_time",
+            "end_time",
+            "start_latitude",
+            "end_latitude",
+            "start_longitude",
+            "end_longitude",
+        ],
+        DATA_TYPES.LIBRE: ["id", "glucose", "timestamp"],
     }
-    SEARCH_COLUMNS = {DATA_TYPES.STRAVA: 'id', DATA_TYPES.LIBRE: 'timestamp,id'}
-    ORDER_BY = {DATA_TYPES.STRAVA: 'id', DATA_TYPES.LIBRE: 'timestamp'}
-
-# fmt: on
+    SEARCH_COLUMNS = {DATA_TYPES.STRAVA: "id", DATA_TYPES.LIBRE: "timestamp,id"}
+    ORDER_BY = {DATA_TYPES.STRAVA: "id", DATA_TYPES.LIBRE: "timestamp"}

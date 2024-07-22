@@ -135,5 +135,10 @@ class Strava:
         }
         logger.debug("******************")
         logger.debug([str(v) for v in list(formatted_data.values())])
-        logger.debug([tuple([str(v) for v in list(formatted_data.values())]),tuple([str(v) for v in list(formatted_data.values())])])
+        logger.debug(
+            [
+                tuple([str(v) for v in list(formatted_data.values())]),
+                tuple([str(v) for v in list(formatted_data.values())]),
+            ]
+        )
         self._save_data([tuple([str(v) for v in list(formatted_data.values())])])

@@ -61,49 +61,52 @@ class PostgresManager:
                 # logger.info(
                 #     sql.SQL(", ").join(map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type]))
                 # )
-                # fmt: off
-                query  = sql.SQL(
-                        """INSERT INTO {table} ({table_columns}) VALUES ({entries})""").format(
-                            table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
-                            table_columns=sql.SQL(', ').join(map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
-                            ),
-                            entries=sql.SQL(', ').join(sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[data_type])))
-                        
-                    
-            #     query  = sql.SQL(
-            #             """INSERT INTO {table} (id,
-            # distance,
-            # activity_type,
-            # moving_time,
-            # elapsed_time,
-            # start_time,
-            # end_time,
-            # start_latitude,
-            # end_latitude,
-            # start_longitude,
-            # end_longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""").format(
-            #                 table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
-            #             )
-                    
-            #     query  = sql.SQL(
-            #             """INSERT INTO activities (id,
-            # distance,
-            # activity_type,
-            # moving_time,
-            # elapsed_time,
-            # start_time,
-            # end_time,
-            # start_latitude,
-            # end_latitude,
-            # start_longitude,
-            # end_longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""")
+
+                query = sql.SQL(
+                    """INSERT INTO {table} ({table_columns}) VALUES ({entries})"""
+                ).format(
+                    table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
+                    table_columns=sql.SQL(", ").join(
+                        map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
+                    ),
+                    entries=sql.SQL(", ").join(
+                        sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[data_type])
+                    ),
+                )
+
+                #     query  = sql.SQL(
+                #             """INSERT INTO {table} (id,
+                # distance,
+                # activity_type,
+                # moving_time,
+                # elapsed_time,
+                # start_time,
+                # end_time,
+                # start_latitude,
+                # end_latitude,
+                # start_longitude,
+                # end_longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""").format(
+                #                 table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
+                #             )
+
+                #     query  = sql.SQL(
+                #             """INSERT INTO activities (id,
+                # distance,
+                # activity_type,
+                # moving_time,
+                # elapsed_time,
+                # start_time,
+                # end_time,
+                # start_latitude,
+                # end_latitude,
+                # start_longitude,
+                # end_longitude) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""")
                 # logger.info(query.as_string(conn))
                 curs.executemany(
                     query,
                     data,
                 )
 
-                # fmt: on
         # leaving contexts doesn't close the connection
         conn.close()
 
