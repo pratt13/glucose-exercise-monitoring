@@ -31,7 +31,7 @@ class DATA_TYPES:
 
 
 class TABLE_SCHEMA:
-    NAME = {DATA_TYPES.STRAVA: "activities", DATA_TYPES.LIBRE: "glucose"}
+    NAME = {DATA_TYPES.STRAVA: "activities", DATA_TYPES.LIBRE: "glucose_times"}
     COLUMNS = {
         DATA_TYPES.STRAVA: [
             "id",
@@ -48,5 +48,5 @@ class TABLE_SCHEMA:
         ],
         DATA_TYPES.LIBRE: ["id", "glucose", "timestamp"],
     }
-    SEARCH_COLUMNS = {DATA_TYPES.STRAVA: "start_time", DATA_TYPES.LIBRE: "timestamp,id"}
+    SEARCH_COLUMNS = {DATA_TYPES.STRAVA: ["start_time"], DATA_TYPES.LIBRE: ["timestamp", "id"]}
     ORDER_BY = {DATA_TYPES.STRAVA: "id", DATA_TYPES.LIBRE: "timestamp"}

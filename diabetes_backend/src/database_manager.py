@@ -23,20 +23,6 @@ class PostgresManager:
             "password": self.password,
         }
 
-    def save_glucose_data(self, data):
-        """
-        Save the data to the table
-        """
-        logging.debug("save_glucose_data()")
-        conn = psycopg2.connect(**self.conn_params)
-
-        with conn:
-            with conn.cursor() as curs:
-                curs.executemany(
-                    "INSERT INTO glucose_times (id, glucose, timestamp) VALUES (%s, %s, %s)", data
-                )
-        # leaving contexts doesn't close the connection
-        conn.close()
 
     def save_data(self, data, data_type):
         """
@@ -92,7 +78,9 @@ class PostgresManager:
                     sql.SQL(
                         "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
                     ).format(
-                        table_columns=sql.Identifier(TABLE_SCHEMA.SEARCH_COLUMNS[data_type]),
+                        table_columns=sql.SQL(", ").join(
+                            map(sql.Identifier, TABLE_SCHEMA.SEARCH_COLUMNS[data_type])
+                        ),
                         order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[data_type]),
                         table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
                     )

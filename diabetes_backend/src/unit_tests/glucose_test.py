@@ -2,6 +2,9 @@ import unittest, os, sys
 from unittest.mock import patch
 from datetime import datetime as dt
 from requests import HTTPError
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from constants import DATETIME_FORMAT, HEADERS
 from glucose import Glucose
 
