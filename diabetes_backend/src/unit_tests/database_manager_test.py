@@ -7,7 +7,8 @@ from psycopg2 import sql
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database_manager import PostgresManager
-from constants import DATA_TYPES, DATETIME_FORMAT, DATABASE_TABLE
+from constants import DATA_TYPES, DATETIME_FORMAT, DATABASE_TABLE, TABLE_SCHEMA
+
 EXAMPLE_DATA = [
     [dt.strptime("12/31/2000 10:30:00 AM", DATETIME_FORMAT), 1],
     [dt.strptime("12/31/2000 10:20:00 AM", DATETIME_FORMAT), 2],
@@ -30,40 +31,104 @@ class TestDatabaseManager(unittest.TestCase):
 
     @mock.patch("psycopg2.connect")
     def test_get_last_record(self, mock_connect):
-        for data_type, query_str in zip([DATA_TYPES.LIBRE, DATA_TYPES.STRAVA], 
-                             ("SELECT timestamp, id FROM glucose_times ORDER BY timestamp DESC LIMIT 1",
-                              "SELECT timestamp FROM activtities ORDER BY timestamp DESC LIMIT 1")):
+        for call_count, (data_type, query_str) in enumerate(
+            zip(
+                [DATA_TYPES.LIBRE, DATA_TYPES.STRAVA],
+                (
+                    sql.SQL(
+                        "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
+                    ).format(
+                        table_columns=sql.SQL(", ").join(
+                            map(sql.Identifier, TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.LIBRE])
+                        ),
+                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[DATA_TYPES.LIBRE]),
+                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.LIBRE]),
+                    ),
+                    sql.SQL(
+                        "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
+                    ).format(
+                        table_columns=sql.SQL(", ").join(
+                            map(sql.Identifier, TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.STRAVA])
+                        ),
+                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[DATA_TYPES.STRAVA]),
+                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]),
+                    ),
+                ),
+            ),
+            start=1,
+        ):
             with self.subTest(data_type=data_type, query_str=query_str):
-                mock_con = mock_connect.return_value  # result of psycopg2.connect(**connection_stuff)
-                mock_cur = mock_con.cursor.return_value.__enter__.return_value  # result of con.cursor()
-                mock_cur.fetchone.return_value = EXAMPLE_DATA[0]  # return this when calling cur.fetchone()
+                mock_con = (
+                    mock_connect.return_value
+                )  # result of psycopg2.connect(**connection_stuff)
+                mock_cur = (
+                    mock_con.cursor.return_value.__enter__.return_value
+                )  # result of con.cursor()
+                mock_cur.fetchone.return_value = EXAMPLE_DATA[
+                    0
+                ]  # return this when calling cur.fetchone()
 
-                result = self.PostgresManager.get_last_record()
+                result = self.PostgresManager.get_last_record(data_type)
 
                 self.assertEqual(result, EXAMPLE_DATA[0])
 
                 # Check the calls are as expected
                 mock_connect.assert_called_with(**self.conn_values)
-                mock_con.cursor.asset_called_with()
-                mock_cur.execute.assert_called_once()
-                mock_cur.execute.assert_called_with(query_str
-                )
+                mock_con.cursor.asset_called_with(data_type)
+                self.assertEqual(mock_cur.execute.call_count, call_count)
+                mock_cur.execute.assert_called_with(query_str)
 
     @mock.patch("psycopg2.connect")
-    def test_data(self, mock_connect):
-        test_data = [
-            (1, 4.5, dt(1990, 7, 11, 19, 45, 55)),
-            (2, 4.5, dt(1990, 7, 11, 19, 45, 55)),
-        ]
-        mock_con = mock_connect.return_value  # result of psycopg2.connect(**connection_stuff)
-        mock_cur = mock_con.cursor.return_value.__enter__.return_value  # result of con.cursor()
+    def test_save_data(self, mock_connect):
+        for call_count, (data_type, query_str, test_data) in enumerate(
+            zip(
+                [DATA_TYPES.LIBRE, DATA_TYPES.STRAVA],
+                [
+                    sql.SQL("""INSERT INTO {table} ({table_columns}) VALUES ({entries})""").format(
+                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.LIBRE]),
+                        table_columns=sql.SQL(", ").join(
+                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[DATA_TYPES.LIBRE])
+                        ),
+                        entries=sql.SQL(", ").join(
+                            sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.LIBRE])
+                        ),
+                    ),
+                    sql.SQL("""INSERT INTO {table} ({table_columns}) VALUES ({entries})""").format(
+                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]),
+                        table_columns=sql.SQL(", ").join(
+                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[DATA_TYPES.STRAVA])
+                        ),
+                        entries=sql.SQL(", ").join(
+                            sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.STRAVA])
+                        ),
+                    ),
+                ],
+                [
+                    [
+                        (1, 4.5, dt(1990, 7, 11, 19, 45, 55)),
+                        (2, 4.5, dt(1990, 7, 11, 19, 45, 55)),
+                    ],
+                    [
+                        (1, 1.2, "RUN", 10, 145, "ts", "ts2", 1.2, 1.3, 1.4, 1.5),
+                        (2, 1.2, "RUN2", 10, 145, "ts", "ts2", 1.2, 1.3, 1.4, 1.5),
+                    ],
+                ],
+            ),
+            start=1,
+        ):
+            with self.subTest(data_type=data_type, query_str=query_str, test_data=test_data):
 
-        self.PostgresManager.save_glucose_data(test_data)
+                mock_con = (
+                    mock_connect.return_value
+                )  # result of psycopg2.connect(**connection_stuff)
+                mock_cur = (
+                    mock_con.cursor.return_value.__enter__.return_value
+                )  # result of con.cursor()
 
-        # Check the calls are as expected
-        mock_connect.assert_called_with(**self.conn_values)
-        mock_con.cursor.asset_called_with()
-        mock_cur.executemany.assert_called_once()
-        mock_cur.executemany.assert_called_with(
-            "INSERT INTO glucose_times (id, glucose, timestamp) VALUES (%s, %s, %s)", test_data
-        )
+                self.PostgresManager.save_data(test_data, data_type)
+
+                # Check the calls are as expected
+                mock_connect.assert_called_with(**self.conn_values)
+                mock_con.cursor.asset_called_with()
+                self.assertEqual(mock_cur.executemany.call_count, call_count)
+                mock_cur.executemany.assert_called_with(query_str, test_data)

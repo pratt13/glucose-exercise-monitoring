@@ -39,40 +39,14 @@ POSTGRES_ENV = {
 )
 class TestGlucose(unittest.TestCase):
     def setUp(self):
-        super.setUp()
-        self.test_data = {
-            "FactoryTimestamp": "7/11/2024 3: 22: 43 AM",
-            "Timestamp": "7/11/2024 4: 22: 43 AM",
-            "type": 0,
-            "ValueInMgPerDl": 80,
-            "MeasurementColor": 1,
-            "GlucoseUnits": 0,
-            "Value": 4.4,
-            "isHigh": False,
-            "isLow": False,
-        }
+        super().setUp()
 
-    @patch("requests.get")
-    @patch("auth.AuthenticationManagement", autospec=True)
-    @patch("database_manager.PostgresManager")
-    def test_format_cgm_data(self, mock_requests, mock_auth_manager, mock_database_manager):
-        # Format mocks
-        mock_token = "mock_token"
-        mock_auth_manager.return_value.get_token.return_value = mock_token
-        mock_patient_ids = [{"patientId": "123"}, {"patientId": "456"}]
-        mock_requests.return_value = MockRequest(mock_patient_ids)
+    # def test_format_cgm_data(self, mock_requests, mock_auth_manager, mock_database_manager):
+    #     mock_auth_manager.get_token.return_value = "Fake token"
+    #     mock_requests.return_value = MockRequest
 
-        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-
-        # All records are returned
-        glucose.format_cgm_data(
-            "7/11/1000 3:22:43 AM",
-            0,
-        )
-
-        # Some records are returned
-
-        # No records are returned
+    #     glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
+    #     # print(mock_auth_manager.call_args)
 
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)

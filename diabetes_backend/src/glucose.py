@@ -82,8 +82,7 @@ class Glucose:
         :data:
             {'FactoryTimestamp': '7/11/2024 3: 22: 43 AM', 'Timestamp': '7/11/2024 4: 22: 43 AM', 'type': 0, 'ValueInMgPerDl': 80, 'MeasurementColor': 1, 'GlucoseUnits': 0, 'Value': 4.4, 'isHigh': False, 'isLow': False
         """
-        logging.info("format_cgm_data()")
-        logging.debug(f"Last timestamp {last_timestamp}")
+        logging.debug("format_cgm_data({last_timestamp}, {max_id}, {data})")
         # Filter records the new ones must be at least one second apart
         filtered_records = [
             (record.get("Value"), record.get("Timestamp"))

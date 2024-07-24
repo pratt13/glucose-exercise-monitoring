@@ -23,7 +23,6 @@ class PostgresManager:
             "password": self.password,
         }
 
-
     def save_data(self, data, data_type):
         """
         Save the data to the associated table
