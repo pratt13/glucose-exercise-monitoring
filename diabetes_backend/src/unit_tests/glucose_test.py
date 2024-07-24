@@ -39,10 +39,32 @@ POSTGRES_ENV = {
 )
 class TestGlucose(unittest.TestCase):
     def setUp(self):
-        super.setUp()
-        self.test_data = {
+        super().setUp()
+        self.test_data_1 = {
             "FactoryTimestamp": "7/11/2024 3: 22: 43 AM",
             "Timestamp": "7/11/2024 4: 22: 43 AM",
+            "type": 0,
+            "ValueInMgPerDl": 80,
+            "MeasurementColor": 1,
+            "GlucoseUnits": 0,
+            "Value": 4.4,
+            "isHigh": False,
+            "isLow": False,
+        }
+        self.test_data_2 = {
+            "FactoryTimestamp": "7/11/2022 3:22:43 AM",
+            "Timestamp": "7/11/2024 4:22:43 AM",
+            "type": 0,
+            "ValueInMgPerDl": 80,
+            "MeasurementColor": 1,
+            "GlucoseUnits": 0,
+            "Value": 4.4,
+            "isHigh": False,
+            "isLow": False,
+        }
+        self.test_data_3 = {
+            "FactoryTimestamp": "7/11/2024 3:22:43 AM",
+            "Timestamp": "7/11/2024 4:22:43 AM",
             "type": 0,
             "ValueInMgPerDl": 80,
             "MeasurementColor": 1,
@@ -65,14 +87,37 @@ class TestGlucose(unittest.TestCase):
         glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
 
         # All records are returned
-        glucose.format_cgm_data(
-            "7/11/1000 3:22:43 AM",
-            0,
+        res = glucose.format_cgm_data(
+            "7/11/1000 3:22:43 AM", 0, [self.test_data_1, self.test_data_2, self.test_data_3]
+        )
+        self.assertEqual(
+            [
+                (1, self.test_data_1.get("Value"), self.test_data_1.get("Timestamp")),
+                (2, self.test_data_2.get("Value"), self.test_data_2.get("Timestamp")),
+                (3, self.test_data_3.get("Value"), self.test_data_3.get("Timestamp")),
+            ],
+            res,
         )
 
         # Some records are returned
+        res = glucose.format_cgm_data(
+            "1/11/2024 3:22:43 AM", 2, [self.test_data_1, self.test_data_2, self.test_data_3]
+        )
+        self.assertEqual(
+            [
+                (3, self.test_data_3.get("Value"), self.test_data_3.get("Timestamp")),
+            ],
+            res,
+        )
 
         # No records are returned
+        res = glucose.format_cgm_data(
+            "7/11/3000 3:22:43 AM", 3, [self.test_data_1, self.test_data_2, self.test_data_3]
+        )
+        self.assertEqual(
+            [],
+            res,
+        )
 
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
