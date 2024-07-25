@@ -15,5 +15,5 @@ pip install -r requirements.txt
 ## Unit Tests
 
 ```sh
-python -m unittest discover -s ./unit_tests/ -p '*_test.py'
+python -m unittest discover -s ./src/unit_tests/ -p '*_test.py'
 ```

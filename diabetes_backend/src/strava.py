@@ -67,6 +67,7 @@ class Strava:
             "f": "json",
         }
         res = requests.post(f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False)
+        res.raise_for_status()
         access_token = res.json().get("access_token")
         return access_token
 
@@ -100,7 +101,7 @@ class Strava:
         return self.db_manager.get_last_record(DATA_TYPES.STRAVA)
 
     @staticmethod
-    def _format_activity_data(record):
+    def format_activity_data(record):
         # TOOD: VAlidate schema
         start_time = record.get("start_date")
         # Compute
@@ -136,6 +137,6 @@ class Strava:
             page=page,
         )
         formatted_data = [
-            tuple(list(self._format_activity_data(record).values())) for record in data
+            tuple(list(self.format_activity_data(record).values())) for record in data
         ]
         self._save_data(formatted_data)

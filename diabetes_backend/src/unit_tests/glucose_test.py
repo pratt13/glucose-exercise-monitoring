@@ -41,8 +41,8 @@ class TestGlucose(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.test_data_1 = {
-            "FactoryTimestamp": "7/11/2024 3: 22: 43 AM",
-            "Timestamp": "7/11/2024 4: 22: 43 AM",
+            "FactoryTimestamp": "7/11/2024 3:22:43 AM",
+            "Timestamp": "7/11/2024 4:22:43 AM",
             "type": 0,
             "ValueInMgPerDl": 80,
             "MeasurementColor": 1,
@@ -243,21 +243,7 @@ class TestGlucose(unittest.TestCase):
     @patch("database_manager.PostgresManager")
     def test_update_cgm_data_success(self, mock_database_manager, mock_auth_manager, mock_requests):
         # Format mocks
-        mock_data = {
-            "graphData": [
-                {
-                    "FactoryTimestamp": "7/11/2024 3:22:43 AM",
-                    "Timestamp": "7/11/2024 4:22:43 AM",
-                    "type": 0,
-                    "ValueInMgPerDl": 80,
-                    "MeasurementColor": 1,
-                    "GlucoseUnits": 0,
-                    "Value": 4.4,
-                    "isHigh": False,
-                    "isLow": False,
-                }
-            ]
-        }
+        mock_data = {"graphData": [self.test_data_1]}
         mock_token = "mock_token"
         mock_auth_manager.return_value.get_token.return_value = mock_token
         mock_requests.return_value = MockRequest(mock_data)

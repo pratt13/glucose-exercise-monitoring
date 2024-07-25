@@ -3,21 +3,23 @@ from unittest.mock import patch
 from datetime import datetime as dt
 from requests import HTTPError
 
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from constants import DATA_TYPES, DATETIME_FORMAT, HEADERS
+from constants import DATA_TYPES, DATETIME_FORMAT, HEADERS, STRAVA_BASE_URL
 from glucose import Glucose
+from strava import Strava
 
 ERROR_MSG = "My test error"
 
 
 class MockRequest:
-    def __init__(self, data, raise_error=False):
-        self.data = data
+    def __init__(self, token, raise_error=False):
+        self.token = token
         self.raise_error = raise_error
 
     def json(self):
-        return {"data": self.data}
+        return {"access_token": self.token}
 
     def raise_for_status(self):
         if self.raise_error:
@@ -37,194 +39,160 @@ POSTGRES_ENV = {
     POSTGRES_ENV,
     clear=True,
 )
-class TestGlucose(unittest.TestCase):
+class TestStrava(unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.client_id = "myId"
+        self.client_secret = "secret"
+        self.refresh_token = "my_token"
+        # Test data sample - we skip some records for brevity
+        self.test_data_1 = {
+            "id": "1",
+            "athlete": {"id": "123"},
+            "distance": 105,
+            "type": "Run",
+            "moving_time": 5.6,
+            "elapsed_time": 6.2,
+            "start_date": 1,
+            "start_latlng": [4.4, 6.2],
+            "end_latlng": [5.5, 7.1],
+        }
 
-    # def test_format_cgm_data(self, mock_requests, mock_auth_manager, mock_database_manager):
-    #     mock_auth_manager.get_token.return_value = "Fake token"
-    #     mock_requests.return_value = MockRequest
-
-    #     glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-    #     # print(mock_auth_manager.call_args)
-
-    @patch("requests.get")
-    @patch("auth.AuthenticationManagement", autospec=True)
+    @patch("requests.post")
     @patch("database_manager.PostgresManager")
-    def test_get_patient_ids_success(self, mock_database_manager, mock_auth_manager, mock_requests):
-        # Format mocks
-        mock_token = "mock_token"
-        mock_auth_manager.return_value.get_token.return_value = mock_token
-        mock_patient_ids = [{"patientId": "123"}, {"patientId": "456"}]
-        mock_requests.return_value = MockRequest(mock_patient_ids)
+    def test_get_token_success(self, mock_database_manager, mock_requests):
+        payload = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "refresh_token": self.refresh_token,
+            "grant_type": "refresh_token",
+            "f": "json",
+        }
+        mock_requests.return_value = MockRequest("token")
+        strava_cls = Strava(
+            self.client_id, self.client_secret, self.refresh_token, mock_database_manager
+        )
+        result = strava_cls.get_token()
 
-        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-        patient_ids = glucose.get_patient_ids()
-        self.assertEqual(patient_ids, [p.get("patientId") for p in mock_patient_ids])
+        self.assertEqual(result, "token")
 
         # Check the mocks
-        mock_auth_manager.return_value.get_token.assert_called_once()
         mock_requests.assert_called_once()
         mock_requests.assert_called_once_with(
-            "https://api.libreview.io/llu/connections",
-            headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
+            f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
         )
-        mock_database_manager.assert_called_once()
+        self.assertEqual(mock_database_manager.call_count, 1)
         mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
 
-    @patch("requests.get")
-    @patch("auth.AuthenticationManagement", autospec=True)
+    @patch("requests.post")
     @patch("database_manager.PostgresManager")
-    def test_get_patient_ids_failure(self, mock_database_manager, mock_auth_manager, mock_requests):
-        mock_patient_ids = [{"patientId": "123"}, {"patientId": "456"}]
-        mock_requests.return_value = MockRequest(mock_patient_ids, raise_error=True)
-        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
+    def test_get_token_failure(self, mock_database_manager, mock_requests):
+        payload = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "refresh_token": self.refresh_token,
+            "grant_type": "refresh_token",
+            "f": "json",
+        }
+        mock_requests.return_value = MockRequest("token", raise_error=True)
+        strava_cls = Strava(
+            self.client_id, self.client_secret, self.refresh_token, mock_database_manager
+        )
 
         with self.assertRaises(HTTPError) as ex:
-            glucose.get_patient_ids()
+            strava_cls.get_token()
         self.assertEqual(str(ex.exception), ERROR_MSG)
-        mock_auth_manager.return_value.get_token.assert_called_once()
+
+        # Check the mocks
         mock_requests.assert_called_once()
-        mock_database_manager.assert_called_once()
+        mock_requests.assert_called_once_with(
+            f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
+        )
+        self.assertEqual(mock_database_manager.call_count, 1)
         mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
 
     @patch("requests.get")
-    @patch("auth.AuthenticationManagement", autospec=True)
+    @patch("requests.post")
     @patch("database_manager.PostgresManager")
-    def test_get_cgm_data_success(self, mock_database_manager, mock_auth_manager, mock_requests):
-        # Format mocks
-        mock_data = {
-            "graphData": [
-                {
-                    "FactoryTimestamp": "7/11/2024 3: 22: 43 AM",
-                    "Timestamp": "7/11/2024 4: 22: 43 AM",
-                    "type": 0,
-                    "ValueInMgPerDl": 80,
-                    "MeasurementColor": 1,
-                    "GlucoseUnits": 0,
-                    "Value": 4.4,
-                    "isHigh": False,
-                    "isLow": False,
-                }
-            ]
+    def test_get_activity_data_success(
+        self, mock_database_manager, mock_requests_post, mock_requests_get
+    ):
+        payload = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "refresh_token": self.refresh_token,
+            "grant_type": "refresh_token",
+            "f": "json",
         }
-        mock_token = "mock_token"
-        mock_auth_manager.return_value.get_token.return_value = mock_token
-        mock_requests.return_value = MockRequest(mock_data)
-
-        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-        patient_id = "patient_id_123"
-        result = glucose.get_cgm_data(patient_id)
-        self.assertEqual(result, {"data": mock_data})
+        mock_requests_post.return_value = MockRequest("token")
+        mock_requests_get.return_value = MockRequest(self.test_data_1)
+        strava_cls = Strava(
+            self.client_id, self.client_secret, self.refresh_token, mock_database_manager
+        )
+        result = strava_cls.get_token()
+        self.assertEqual(result, "token")
 
         # Check the mocks
-        mock_auth_manager.return_value.get_token.assert_called_once()
-        mock_requests.assert_called_once()
-        mock_requests.assert_called_once_with(
-            f"https://api.libreview.io/llu/connections/{patient_id}/graph",
-            headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
+        mock_requests_post.assert_called_once()
+        mock_requests_post.assert_called_once_with(
+            f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
         )
-        mock_database_manager.assert_called_once()
+        mock_requests_get.assert_called_once()
+        mock_requests_post.assert_called_once_with(
+            f"{STRAVA_BASE_URL}/api/v3/athlete/activities",
+            headers={"Authorization": f"Authorization: Bearer token"},
+            params={},
+        )
+        self.assertEqual(mock_database_manager.call_count, 1)
         mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
 
-    @patch("requests.get")
-    @patch("auth.AuthenticationManagement", autospec=True)
+    # @patch("requests.post")
+    # @patch("database_manager.PostgresManager")
+    # def test_get_token_failure(self, mock_database_manager, mock_requests):
+    #     payload = {
+    #         "client_id": self.client_id,
+    #         "client_secret": self.client_secret,
+    #         "refresh_token": self.refresh_token,
+    #         "grant_type": "refresh_token",
+    #         "f": "json",
+    #     }
+    #     mock_requests.return_value = MockRequest("token", raise_error=True)
+    #     strava_cls = Strava(
+    #         self.client_id, self.client_secret, self.refresh_token, mock_database_manager
+    #     )
+
+    #     with self.assertRaises(HTTPError) as ex:
+    #         strava_cls.get_token()
+    #     self.assertEqual(str(ex.exception), ERROR_MSG)
+
+    #     # Check the mocks
+    #     mock_requests.assert_called_once()
+    #     mock_requests.assert_called_once_with(
+    #         f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
+    #     )
+    #     self.assertEqual(mock_database_manager.call_count, 1)
+    #     mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+
     @patch("database_manager.PostgresManager")
-    def test_get_cgm_data_failure(self, mock_database_manager, mock_auth_manager, mock_requests):
-        # Format mocks
-        mock_data = {
-            "graphData": [
-                {
-                    "FactoryTimestamp": "7/11/2024 3: 22: 43 AM",
-                    "Timestamp": "7/11/2024 4: 22: 43 AM",
-                    "type": 0,
-                    "ValueInMgPerDl": 80,
-                    "MeasurementColor": 1,
-                    "GlucoseUnits": 0,
-                    "Value": 4.4,
-                    "isHigh": False,
-                    "isLow": False,
-                }
-            ]
-        }
-        mock_token = "mock_token"
-        mock_auth_manager.return_value.get_token.return_value = mock_token
-        mock_requests.return_value = MockRequest(mock_data, raise_error=True)
-
-        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-        patient_id = "patient_id_123"
-        with self.assertRaises(HTTPError) as ex:
-            glucose.get_cgm_data(patient_id)
-        self.assertEqual(str(ex.exception), ERROR_MSG)
-        # Check the mocks
-        mock_auth_manager.return_value.get_token.assert_called_once()
-        mock_auth_manager.return_value.get_token.assert_called_once_with()
-        mock_requests.assert_called_once()
-        mock_requests.assert_called_once_with(
-            f"https://api.libreview.io/llu/connections/{patient_id}/graph",
-            headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
+    def test_format_activity_data(self, mock_database_manager):
+        strava_cls = Strava(
+            self.client_id, self.client_secret, self.refresh_token, mock_database_manager
         )
-        mock_database_manager.assert_called_once()
-        mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+        result = strava_cls.format_activity_data(self.test_data_1)
 
-    @patch("requests.get")
-    @patch("auth.AuthenticationManagement", autospec=True)
-    @patch("database_manager.PostgresManager")
-    def test_update_cgm_data_success(self, mock_database_manager, mock_auth_manager, mock_requests):
-        # Format mocks
-        mock_data = {
-            "graphData": [
-                {
-                    "FactoryTimestamp": "7/11/2024 3:22:43 AM",
-                    "Timestamp": "7/11/2024 4:22:43 AM",
-                    "type": 0,
-                    "ValueInMgPerDl": 80,
-                    "MeasurementColor": 1,
-                    "GlucoseUnits": 0,
-                    "Value": 4.4,
-                    "isHigh": False,
-                    "isLow": False,
-                }
-            ]
-        }
-        mock_token = "mock_token"
-        mock_auth_manager.return_value.get_token.return_value = mock_token
-        mock_requests.return_value = MockRequest(mock_data)
-        mock_database_manager.return_value.get_last_record.return_value = (
-            dt.strptime("12/31/2000 10:30:00 AM", DATETIME_FORMAT),
-            1,
+        self.assertDictEqual(
+            result,
+            {
+                "id": "1231",
+                "distance": 105,
+                "activity_type": "Run",
+                "moving_time": 5.6,
+                "elapsed_time": 6.2,
+                "start_time": 1,
+                "end_time": 1,
+                "start_latitude": 4.4,
+                "end_latitude": 5.5,
+                "start_longitude": 6.2,
+                "end_longitude": 7.1,
+            },
         )
-
-        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-        patient_id = "patient_id_123"
-        result = glucose.update_cgm_data(patient_id)
-        self.assertIsNone(result)
-
-        # Check the mocks
-        mock_auth_manager.return_value.get_token.assert_called_once()
-        mock_requests.assert_called_once()
-        mock_requests.assert_called_once_with(
-            f"https://api.libreview.io/llu/connections/{patient_id}/graph",
-            headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
-        )
-        mock_database_manager.assert_called_once()
-        mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
-        mock_database_manager.return_value.get_last_record.assert_called_once()
-        mock_database_manager.return_value.get_last_record.assert_called_once_with(DATA_TYPES.LIBRE)
-        mock_database_manager.return_value.save_data.assert_called_once()
-        mock_database_manager.return_value.save_data.assert_called_once_with(
-            [(2, 4.4, "7/11/2024 4:22:43 AM")], DATA_TYPES.LIBRE
-        )
-
-    @patch("auth.AuthenticationManagement", autospec=True)
-    @patch("database_manager.PostgresManager")
-    def test_format_cgm_data(self, mock_database_manager, mock_auth_manager):
-        last_timestamp, id = dt.strptime("12/31/2000 10:30:00 AM", DATETIME_FORMAT), 1
-        test_data = [
-            {"Timestamp": "12/31/2000 10:29:59 AM", "Value": 5.2},
-            {"Timestamp": "12/31/2000 10:30:00 AM", "Value": 5.3},
-            {"Timestamp": "12/31/2000 10:30:01 AM", "Value": 5.4},
-        ]
-        glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
-        result = glucose.format_cgm_data(last_timestamp, id, test_data)
-        self.assertEqual(result, [(2, 5.4, "12/31/2000 10:30:01 AM")])
