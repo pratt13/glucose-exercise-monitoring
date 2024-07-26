@@ -9,4 +9,9 @@
 - [ ] Dashboard to map recorded exercise and sugar levels
 - [ ] ML patterns for predicting long acting insulin during night time
 - [ ] Research current studies in this area on arXiv
-
+- [ ] Abstract backend classes
+- [ ] Configure cron job
+- [ ] Manually trigger data fetch
+- [ ] Avoid excessive pulls from Strava (rate limited)
+- [ ] Pre commit hooks
+- [ ] Logging

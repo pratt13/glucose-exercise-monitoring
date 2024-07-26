@@ -42,6 +42,21 @@ The caveat is, the amount of data stored is presumably limited (1 week), so a cs
 * On the libre app used to scan the sensor, click connected apps and enter the details.
 * Accept the link on `Libre Linkup` app.
 
+## Strava
+
+## Executing the tasks
+
+```sh
+./build_all.sh
+./run.sh
+```
+
+### Tests
+
+```sh
+./build_all.sh
+./run_tests.sh
+```
 
 ### Database
 A Postgres database to store that glucose records.
