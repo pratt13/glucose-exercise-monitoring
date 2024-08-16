@@ -6,10 +6,16 @@ from dotenv import load_dotenv
 # Environment variables - default to non-docker patterns
 ENV_FILE = os.getenv("ENV_FILE", ".env.local")
 
-from strava import Strava
+from crons import cron
 from auth import AuthenticationManagement
 from database_manager import PostgresManager
+from utils import (
+    load_libre_credentials_from_env,
+    load_strava_credentials_from_env,
+)
 from glucose import Glucose
+from strava import Strava
+
 
 # Load configuration - mainly for outside docker
 load_dotenv(ENV_FILE)
@@ -27,22 +33,18 @@ logging.basicConfig(
 
 
 if __name__ == "__main__":
-    # Libre Environment variables
-    email = os.getenv("LIBRE_EMAIL")
-    password = os.getenv("LIBRE_PASSWORD")
-    # Strava environemnt variables
-    strava_client_id = os.getenv("STRAVA_CLIENT_ID")
-    strava_client_secret = os.getenv("STRAVA_CLIENT_SECRET")
-    strava_rfresh_token = os.getenv("STRAVA_REFRESH_TOKEN")
-    libre = Glucose(email, password, AuthenticationManagement, PostgresManager)
-    strava = Strava(strava_client_id, strava_client_secret, strava_rfresh_token, PostgresManager)
     count = 0
+    libre = Glucose(
+        *load_libre_credentials_from_env(),
+        AuthenticationManagement,
+        PostgresManager,
+    )
+    strava = Strava(
+        *load_strava_credentials_from_env(),
+        PostgresManager,
+    )
     while count < 10:
         logger.info(f"Iteration: {count+1}")
-        patient_ids = libre.get_patient_ids()
-        for patient_id in patient_ids:
-            libre.update_cgm_data(patient_id)
-
-        strava.update_data(records_per_page=100, page=1)
+        cron(libre, strava)
         time.sleep(60 * 1)
         count += 1
