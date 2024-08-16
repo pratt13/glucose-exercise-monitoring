@@ -19,7 +19,7 @@ class MockRequest:
         self.raise_error = raise_error
 
     def json(self):
-        return  self.response
+        return self.response
 
     def raise_for_status(self):
         if self.raise_error:
@@ -124,7 +124,7 @@ class TestStrava(unittest.TestCase):
             "grant_type": "refresh_token",
             "f": "json",
         }
-        mock_requests_post.return_value = MockRequest({"access_token":"token"})
+        mock_requests_post.return_value = MockRequest({"access_token": "token"})
         mock_requests_get.return_value = MockRequest([self.test_data_1])
         strava_cls = Strava(
             self.client_id, self.client_secret, self.refresh_token, mock_database_manager
@@ -145,6 +145,7 @@ class TestStrava(unittest.TestCase):
         )
         self.assertEqual(mock_database_manager.call_count, 1)
         mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+
     @patch("requests.get")
     @patch("requests.post")
     @patch("database_manager.PostgresManager")
@@ -158,7 +159,7 @@ class TestStrava(unittest.TestCase):
             "grant_type": "refresh_token",
             "f": "json",
         }
-        mock_requests_post.return_value = MockRequest({"access_token":"token"})
+        mock_requests_post.return_value = MockRequest({"access_token": "token"})
         mock_requests_get.return_value = MockRequest([self.test_data_1], raise_error=True)
         strava_cls = Strava(
             self.client_id, self.client_secret, self.refresh_token, mock_database_manager
