@@ -3,8 +3,8 @@ import requests
 import logging
 
 
-from constants import DATA_TYPES, STRAVA_BASE_URL, STRAVA_DATETIME
-from utils import compute_epoch
+from src.constants import DATA_TYPES, STRAVA_BASE_URL, STRAVA_DATETIME
+from src.utils import compute_epoch
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,10 @@ class Strava:
             os.environ["DB_HOST"],
             os.environ["DB_NAME"],
         )
+
+    @property
+    def name(self):
+        return "Strava"
 
     @property
     def token(self):

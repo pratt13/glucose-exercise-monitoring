@@ -5,7 +5,7 @@ from unittest.mock import call, patch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from crons import cron
+from src.crons import cron
 
 
 class TestCrons(unittest.TestCase):

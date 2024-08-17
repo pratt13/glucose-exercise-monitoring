@@ -11,6 +11,10 @@ def convert_str_to_ts(ts, fmt):
     return datetime.strptime(ts, fmt)
 
 
+def convert_ts_to_str(ts, fmt):
+    return ts.strftime(fmt)
+
+
 def load_libre_credentials_from_env():
     return (os.getenv("LIBRE_EMAIL"), os.getenv("LIBRE_PASSWORD"))
 

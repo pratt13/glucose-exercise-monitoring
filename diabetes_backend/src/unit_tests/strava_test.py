@@ -6,9 +6,9 @@ from requests import HTTPError
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from constants import DATA_TYPES, DATETIME_FORMAT, HEADERS, STRAVA_BASE_URL
-from glucose import Glucose
-from strava import Strava
+from src.constants import DATA_TYPES, DATETIME_FORMAT, HEADERS, STRAVA_BASE_URL
+from src.glucose import Glucose
+from src.strava import Strava
 
 ERROR_MSG = "My test error"
 

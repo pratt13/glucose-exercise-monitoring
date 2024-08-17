@@ -3,7 +3,7 @@ import requests
 import logging
 from datetime import datetime
 
-from constants import BASE_URL, DATA_TYPES, HEADERS, DATETIME_FORMAT
+from src.constants import BASE_URL, DATA_TYPES, HEADERS, DATETIME_FORMAT
 
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,7 @@ class Glucose:
     """
 
     def __init__(self, email, password, auth, db_manager):
+        logger.debug(f"Glucose email: {email}")
         # Initialise auth
         self.auth_manager = auth(email, password)
         self.email = email
@@ -25,6 +26,10 @@ class Glucose:
             os.environ["DB_HOST"],
             os.environ["DB_NAME"],
         )
+
+    @property
+    def name(self):
+        return "Libre"
 
     def get_patient_ids(self):
         """
@@ -55,6 +60,13 @@ class Glucose:
         """
         logger.debug("_get_last_record()")
         return self.db_manager.get_last_record(DATA_TYPES.LIBRE)
+
+    def get_records(self, start_time, end_time):
+        """
+        Get all records from the database within the given time interval
+        """
+        logger.debug(f"get_records({start_time}, {end_time})")
+        return self.db_manager.get_records(DATA_TYPES.LIBRE, start_time, end_time)
 
     def _save_data(self, data):
         """

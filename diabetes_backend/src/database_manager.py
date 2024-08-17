@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2 import sql
 import datetime
 import logging
-from constants import DATA_TYPES, TABLE_SCHEMA
+from src.constants import DATA_TYPES, TABLE_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -90,3 +90,33 @@ class PostgresManager:
         conn.close()
 
         return res or self._get_default_last_record(data_type)
+
+    def get_records(self, data_type, start_time, end_time):
+        """Fetch the records in the table for the given date range"""
+        logging.debug(f"get_last_record({data_type})")
+        self._validate_data_type(data_type)
+        logger.debug(f"Retrieving data from {TABLE_SCHEMA.NAME[data_type]}")
+        conn = psycopg2.connect(**self.conn_params)
+
+        with conn:
+            with conn.cursor() as curs:
+                curs.execute(
+                    sql.SQL(
+                        "SELECT {table_columns} FROM {table} WHERE {time_field} <= {end_time} AND {time_field} >= {start_time} ORDER BY {order_by} "
+                    ).format(
+                        table_columns=sql.SQL(", ").join(
+                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
+                        ),
+                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[data_type]),
+                        table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
+                        time_field=sql.Identifier(TABLE_SCHEMA.TIME_FIELD[data_type]),
+                        end_time=sql.Literal(end_time),
+                        start_time=sql.Literal(start_time),
+                    )
+                )
+                res = curs.fetchall()
+
+        # leaving contexts doesn't close the connection
+        conn.close()
+
+        return res or []

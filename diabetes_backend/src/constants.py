@@ -8,7 +8,8 @@ HEADERS = {
     "version": "4.7",
 }
 DATETIME_FORMAT = "%m/%d/%Y %I:%M:%S %p"
-STRAVA_DATETIME = "%Y-%m-%D %H:%M:%S"
+STRAVA_DATETIME = "%Y-%m-%d %H:%M:%S"
+DATABASE_DATETIME = STRAVA_DATETIME
 DATABASE_TABLE = "glucose_times"
 STRAVA_BASE_URL = "https://www.strava.com"
 STRAVA_ACTIVITIES_COLUMNS = (
@@ -49,4 +50,5 @@ class TABLE_SCHEMA:
         DATA_TYPES.LIBRE: ["id", "glucose", "timestamp"],
     }
     SEARCH_COLUMNS = {DATA_TYPES.STRAVA: ["start_time"], DATA_TYPES.LIBRE: ["timestamp", "id"]}
+    TIME_FIELD = {DATA_TYPES.STRAVA: "start_time", DATA_TYPES.LIBRE: "timestamp"}
     ORDER_BY = {DATA_TYPES.STRAVA: "id", DATA_TYPES.LIBRE: "timestamp"}

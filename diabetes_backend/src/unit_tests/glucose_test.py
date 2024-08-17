@@ -5,8 +5,8 @@ from requests import HTTPError
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from constants import DATA_TYPES, DATETIME_FORMAT, HEADERS
-from glucose import Glucose
+from src.constants import DATA_TYPES, DATETIME_FORMAT, HEADERS
+from src.glucose import Glucose
 
 ERROR_MSG = "My test error"
 

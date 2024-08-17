@@ -6,8 +6,8 @@ from psycopg2 import sql
 # Mangle the paths in tests not in the code
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database_manager import PostgresManager
-from constants import DATA_TYPES, DATETIME_FORMAT, DATABASE_TABLE, TABLE_SCHEMA
+from src.database_manager import PostgresManager
+from src.constants import DATA_TYPES, DATETIME_FORMAT, DATABASE_TABLE, TABLE_SCHEMA
 
 EXAMPLE_DATA = [
     [dt.strptime("12/31/2000 10:30:00 AM", DATETIME_FORMAT), 1],

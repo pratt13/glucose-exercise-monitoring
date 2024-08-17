@@ -2,7 +2,7 @@ import requests
 import time
 import logging
 from datetime import datetime, timedelta
-from constants import BASE_URL, HEADERS
+from src.constants import BASE_URL, HEADERS
 
 logger = logging.getLogger(__name__)
 

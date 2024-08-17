@@ -15,3 +15,7 @@
 - [ ] Avoid excessive pulls from Strava (rate limited)
 - [ ] Pre commit hooks
 - [ ] Logging
+- [ ] Sphinx docs
+- [ ] Swagger
+- [ ] Terraform and cloud
+- [ ] COrrect Flask docker image
