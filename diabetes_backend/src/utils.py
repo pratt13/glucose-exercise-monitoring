@@ -25,7 +25,3 @@ def load_strava_credentials_from_env():
         os.getenv("STRAVA_CLIENT_SECRET"),
         os.getenv("STRAVA_REFRESH_TOKEN"),
     )
-
-
-def load_credentials_from_env():
-    return {**load_strava_credentials_from_env(), **load_libre_credentials_from_env()}
