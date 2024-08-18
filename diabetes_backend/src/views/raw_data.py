@@ -30,7 +30,9 @@ class RawData(BaseView):
         default_end_time = convert_ts_to_str(dt.now(), DATABASE_DATETIME)
         start_time = request.args.get("start", default_start_time)
         end_time = request.args.get("end", default_end_time)
-        logger.debug(f"Getting {self.model.name} Records from {start_time} to {end_time}")
+        logger.debug(
+            f"Getting {self.model.name} Records from {start_time} to {end_time}"
+        )
         res = self.model.get_records(start_time, end_time)
         logger.debug(f"Found {len(res)} in time range {start_time} - {end_time}")
         return res, 200

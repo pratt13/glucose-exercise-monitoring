@@ -39,18 +39,28 @@ class TestDatabaseManager(unittest.TestCase):
                         "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
                     ).format(
                         table_columns=sql.SQL(", ").join(
-                            map(sql.Identifier, TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.LIBRE])
+                            map(
+                                sql.Identifier,
+                                TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.LIBRE],
+                            )
                         ),
-                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[DATA_TYPES.LIBRE]),
+                        order_by=sql.Identifier(
+                            TABLE_SCHEMA.ORDER_BY[DATA_TYPES.LIBRE]
+                        ),
                         table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.LIBRE]),
                     ),
                     sql.SQL(
                         "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
                     ).format(
                         table_columns=sql.SQL(", ").join(
-                            map(sql.Identifier, TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.STRAVA])
+                            map(
+                                sql.Identifier,
+                                TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.STRAVA],
+                            )
                         ),
-                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[DATA_TYPES.STRAVA]),
+                        order_by=sql.Identifier(
+                            TABLE_SCHEMA.ORDER_BY[DATA_TYPES.STRAVA]
+                        ),
                         table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]),
                     ),
                 ),
@@ -84,22 +94,28 @@ class TestDatabaseManager(unittest.TestCase):
             zip(
                 [DATA_TYPES.LIBRE, DATA_TYPES.STRAVA],
                 [
-                    sql.SQL("""INSERT INTO {table} ({table_columns}) VALUES ({entries})""").format(
+                    sql.SQL(
+                        """INSERT INTO {table} ({table_columns}) VALUES ({entries})"""
+                    ).format(
                         table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.LIBRE]),
                         table_columns=sql.SQL(", ").join(
                             map(sql.Identifier, TABLE_SCHEMA.COLUMNS[DATA_TYPES.LIBRE])
                         ),
                         entries=sql.SQL(", ").join(
-                            sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.LIBRE])
+                            sql.Placeholder()
+                            * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.LIBRE])
                         ),
                     ),
-                    sql.SQL("""INSERT INTO {table} ({table_columns}) VALUES ({entries})""").format(
+                    sql.SQL(
+                        """INSERT INTO {table} ({table_columns}) VALUES ({entries})"""
+                    ).format(
                         table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]),
                         table_columns=sql.SQL(", ").join(
                             map(sql.Identifier, TABLE_SCHEMA.COLUMNS[DATA_TYPES.STRAVA])
                         ),
                         entries=sql.SQL(", ").join(
-                            sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.STRAVA])
+                            sql.Placeholder()
+                            * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.STRAVA])
                         ),
                     ),
                 ],
@@ -116,7 +132,9 @@ class TestDatabaseManager(unittest.TestCase):
             ),
             start=1,
         ):
-            with self.subTest(data_type=data_type, query_str=query_str, test_data=test_data):
+            with self.subTest(
+                data_type=data_type, query_str=query_str, test_data=test_data
+            ):
 
                 mock_con = (
                     mock_connect.return_value

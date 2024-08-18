@@ -26,16 +26,32 @@ class TestUtils(unittest.TestCase):
         self.dt = dt(2020, 5, 2, 13, 12, 1)
 
     def test_convert_str_to_ts(self):
-        self.assertEqual(convert_str_to_ts("2020/05/02 13:12:01", "%Y/%m/%d %H:%M:%S"), self.dt)
-        self.assertEqual(convert_str_to_ts("2020-05-02 13:12:01", DATABASE_DATETIME), self.dt)
-        self.assertEqual(convert_str_to_ts("2020-05-02 13:12:01", STRAVA_DATETIME), self.dt)
-        self.assertEqual(convert_str_to_ts("05/02/2020 01:12:01 PM", DATETIME_FORMAT), self.dt)
+        self.assertEqual(
+            convert_str_to_ts("2020/05/02 13:12:01", "%Y/%m/%d %H:%M:%S"), self.dt
+        )
+        self.assertEqual(
+            convert_str_to_ts("2020-05-02 13:12:01", DATABASE_DATETIME), self.dt
+        )
+        self.assertEqual(
+            convert_str_to_ts("2020-05-02 13:12:01", STRAVA_DATETIME), self.dt
+        )
+        self.assertEqual(
+            convert_str_to_ts("05/02/2020 01:12:01 PM", DATETIME_FORMAT), self.dt
+        )
 
     def test_convert_ts_to_str(self):
-        self.assertEqual(convert_ts_to_str(self.dt, "%Y/%m/%d %H:%M:%S"), "2020/05/02 13:12:01")
-        self.assertEqual(convert_ts_to_str(self.dt, DATABASE_DATETIME), "2020-05-02 13:12:01")
-        self.assertEqual(convert_ts_to_str(self.dt, STRAVA_DATETIME), "2020-05-02 13:12:01")
-        self.assertEqual(convert_ts_to_str(self.dt, DATETIME_FORMAT), "05/02/2020 01:12:01 PM")
+        self.assertEqual(
+            convert_ts_to_str(self.dt, "%Y/%m/%d %H:%M:%S"), "2020/05/02 13:12:01"
+        )
+        self.assertEqual(
+            convert_ts_to_str(self.dt, DATABASE_DATETIME), "2020-05-02 13:12:01"
+        )
+        self.assertEqual(
+            convert_ts_to_str(self.dt, STRAVA_DATETIME), "2020-05-02 13:12:01"
+        )
+        self.assertEqual(
+            convert_ts_to_str(self.dt, DATETIME_FORMAT), "05/02/2020 01:12:01 PM"
+        )
 
     def test_load_libre_credentials_from_env_no_env(self):
         self.assertEqual(load_libre_credentials_from_env(), (None, None))
@@ -46,7 +62,9 @@ class TestUtils(unittest.TestCase):
         clear=True,
     )
     def test_load_libre_credentials_from_env_with_env(self):
-        self.assertEqual(load_libre_credentials_from_env(), ("LIBRE_EMAIL", "LIBRE_PASSWORD"))
+        self.assertEqual(
+            load_libre_credentials_from_env(), ("LIBRE_EMAIL", "LIBRE_PASSWORD")
+        )
 
     def test_load_strava_credentials_from_env_no_env(self):
         self.assertEqual(load_strava_credentials_from_env(), (None, None, None))

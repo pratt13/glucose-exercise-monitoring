@@ -70,7 +70,9 @@ class Strava:
             "grant_type": "refresh_token",
             "f": "json",
         }
-        res = requests.post(f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False)
+        res = requests.post(
+            f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
+        )
         res.raise_for_status()
         access_token = res.json().get("access_token")
         return access_token

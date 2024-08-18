@@ -81,7 +81,9 @@ class Glucose:
         last_record = self._get_last_record()
         last_timestamp, max_id = last_record
         self._save_data(
-            self.format_cgm_data(last_timestamp, max_id, data.get("data").get("graphData"))
+            self.format_cgm_data(
+                last_timestamp, max_id, data.get("data").get("graphData")
+            )
         )
 
     @staticmethod
@@ -100,7 +102,8 @@ class Glucose:
             (record.get("Value"), record.get("Timestamp"))
             for record in data
             if (
-                datetime.strptime(record.get("Timestamp"), DATETIME_FORMAT) - last_timestamp
+                datetime.strptime(record.get("Timestamp"), DATETIME_FORMAT)
+                - last_timestamp
             ).total_seconds()
             > 0
         ]

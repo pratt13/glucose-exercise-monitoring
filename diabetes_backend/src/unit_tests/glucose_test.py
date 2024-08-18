@@ -77,7 +77,9 @@ class TestGlucose(unittest.TestCase):
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
     @patch("database_manager.PostgresManager")
-    def test_format_cgm_data(self, mock_requests, mock_auth_manager, mock_database_manager):
+    def test_format_cgm_data(
+        self, mock_requests, mock_auth_manager, mock_database_manager
+    ):
         # Format mocks
         mock_token = "mock_token"
         mock_auth_manager.return_value.get_token.return_value = mock_token
@@ -88,7 +90,9 @@ class TestGlucose(unittest.TestCase):
 
         # All records are returned
         res = glucose.format_cgm_data(
-            "7/11/1000 3:22:43 AM", 0, [self.test_data_1, self.test_data_2, self.test_data_3]
+            "7/11/1000 3:22:43 AM",
+            0,
+            [self.test_data_1, self.test_data_2, self.test_data_3],
         )
         self.assertEqual(
             [
@@ -101,7 +105,9 @@ class TestGlucose(unittest.TestCase):
 
         # Some records are returned
         res = glucose.format_cgm_data(
-            "1/11/2024 3:22:43 AM", 2, [self.test_data_1, self.test_data_2, self.test_data_3]
+            "1/11/2024 3:22:43 AM",
+            2,
+            [self.test_data_1, self.test_data_2, self.test_data_3],
         )
         self.assertEqual(
             [
@@ -112,7 +118,9 @@ class TestGlucose(unittest.TestCase):
 
         # No records are returned
         res = glucose.format_cgm_data(
-            "7/11/3000 3:22:43 AM", 3, [self.test_data_1, self.test_data_2, self.test_data_3]
+            "7/11/3000 3:22:43 AM",
+            3,
+            [self.test_data_1, self.test_data_2, self.test_data_3],
         )
         self.assertEqual(
             [],
@@ -122,7 +130,9 @@ class TestGlucose(unittest.TestCase):
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
     @patch("database_manager.PostgresManager")
-    def test_get_patient_ids_success(self, mock_database_manager, mock_auth_manager, mock_requests):
+    def test_get_patient_ids_success(
+        self, mock_database_manager, mock_auth_manager, mock_requests
+    ):
         # Format mocks
         mock_token = "mock_token"
         mock_auth_manager.return_value.get_token.return_value = mock_token
@@ -141,12 +151,16 @@ class TestGlucose(unittest.TestCase):
             headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
         )
         mock_database_manager.assert_called_once()
-        mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+        mock_database_manager.assert_called_once_with(
+            "user", "password", "host", "dbname"
+        )
 
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
     @patch("database_manager.PostgresManager")
-    def test_get_patient_ids_failure(self, mock_database_manager, mock_auth_manager, mock_requests):
+    def test_get_patient_ids_failure(
+        self, mock_database_manager, mock_auth_manager, mock_requests
+    ):
         mock_patient_ids = [{"patientId": "123"}, {"patientId": "456"}]
         mock_requests.return_value = MockRequest(mock_patient_ids, raise_error=True)
         glucose = Glucose("email", "password", mock_auth_manager, mock_database_manager)
@@ -157,12 +171,16 @@ class TestGlucose(unittest.TestCase):
         mock_auth_manager.return_value.get_token.assert_called_once()
         mock_requests.assert_called_once()
         mock_database_manager.assert_called_once()
-        mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+        mock_database_manager.assert_called_once_with(
+            "user", "password", "host", "dbname"
+        )
 
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
     @patch("database_manager.PostgresManager")
-    def test_get_cgm_data_success(self, mock_database_manager, mock_auth_manager, mock_requests):
+    def test_get_cgm_data_success(
+        self, mock_database_manager, mock_auth_manager, mock_requests
+    ):
         # Format mocks
         mock_data = {
             "graphData": [
@@ -196,12 +214,16 @@ class TestGlucose(unittest.TestCase):
             headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
         )
         mock_database_manager.assert_called_once()
-        mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+        mock_database_manager.assert_called_once_with(
+            "user", "password", "host", "dbname"
+        )
 
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
     @patch("database_manager.PostgresManager")
-    def test_get_cgm_data_failure(self, mock_database_manager, mock_auth_manager, mock_requests):
+    def test_get_cgm_data_failure(
+        self, mock_database_manager, mock_auth_manager, mock_requests
+    ):
         # Format mocks
         mock_data = {
             "graphData": [
@@ -236,12 +258,16 @@ class TestGlucose(unittest.TestCase):
             headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
         )
         mock_database_manager.assert_called_once()
-        mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+        mock_database_manager.assert_called_once_with(
+            "user", "password", "host", "dbname"
+        )
 
     @patch("requests.get")
     @patch("auth.AuthenticationManagement", autospec=True)
     @patch("database_manager.PostgresManager")
-    def test_update_cgm_data_success(self, mock_database_manager, mock_auth_manager, mock_requests):
+    def test_update_cgm_data_success(
+        self, mock_database_manager, mock_auth_manager, mock_requests
+    ):
         # Format mocks
         mock_data = {"graphData": [self.test_data_1]}
         mock_token = "mock_token"
@@ -265,9 +291,13 @@ class TestGlucose(unittest.TestCase):
             headers={**HEADERS, "Authorization": f"Bearer {mock_token}"},
         )
         mock_database_manager.assert_called_once()
-        mock_database_manager.assert_called_once_with("user", "password", "host", "dbname")
+        mock_database_manager.assert_called_once_with(
+            "user", "password", "host", "dbname"
+        )
         mock_database_manager.return_value.get_last_record.assert_called_once()
-        mock_database_manager.return_value.get_last_record.assert_called_once_with(DATA_TYPES.LIBRE)
+        mock_database_manager.return_value.get_last_record.assert_called_once_with(
+            DATA_TYPES.LIBRE
+        )
         mock_database_manager.return_value.save_data.assert_called_once()
         mock_database_manager.return_value.save_data.assert_called_once_with(
             [(2, 4.4, "7/11/2024 4:22:43 AM")], DATA_TYPES.LIBRE

@@ -49,6 +49,9 @@ class TABLE_SCHEMA:
         ],
         DATA_TYPES.LIBRE: ["id", "glucose", "timestamp"],
     }
-    SEARCH_COLUMNS = {DATA_TYPES.STRAVA: ["start_time"], DATA_TYPES.LIBRE: ["timestamp", "id"]}
+    SEARCH_COLUMNS = {
+        DATA_TYPES.STRAVA: ["start_time"],
+        DATA_TYPES.LIBRE: ["timestamp", "id"],
+    }
     TIME_FIELD = {DATA_TYPES.STRAVA: "start_time", DATA_TYPES.LIBRE: "timestamp"}
     ORDER_BY = {DATA_TYPES.STRAVA: "id", DATA_TYPES.LIBRE: "timestamp"}

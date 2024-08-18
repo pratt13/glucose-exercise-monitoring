@@ -37,7 +37,9 @@ class AuthenticationManagement:
         for attempt in range(retries + 1):
             try:
                 logger.info(f"Fetching token for {self.email}")
-                response = requests.post(BASE_URL + endpoint, headers=HEADERS, json=payload)
+                response = requests.post(
+                    BASE_URL + endpoint, headers=HEADERS, json=payload
+                )
                 response.raise_for_status()
                 data = response.json()
                 token = data.get("data", {}).get("authTicket", {}).get("token", {})
