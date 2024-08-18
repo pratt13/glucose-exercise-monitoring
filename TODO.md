@@ -1,12 +1,22 @@
 # TODOs
 
+- [X] Service to pull data from Libre
 - [ ] Service to pull data from Strava
 - [ ] Service to upload glucose levels from file to system
-- [ ] Database service to store data
+- [X] Database service to store data (initial)
 - [ ] Dashboard to show summary of exercise activities
 - [ ] Dashboard summary of glucose levels
 - [ ] Clean glucose data
 - [ ] Dashboard to map recorded exercise and sugar levels
 - [ ] ML patterns for predicting long acting insulin during night time
 - [ ] Research current studies in this area on arXiv
-
+- [ ] Abstract backend classes
+- [X] Configure cron job
+- [ ] Manually trigger data fetch
+- [ ] Avoid excessive pulls from Strava (rate limited)
+- [X] Pre commit hooks
+- [ ] Logging
+- [ ] Sphinx docs
+- [ ] Swagger
+- [ ] Terraform and cloud
+- [ ] Correct Flask docker image
