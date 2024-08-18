@@ -21,7 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 # Configuration settings
 from src.views.home import Home
 from src.auth import AuthenticationManagement
-from src.crons import cron
+from src.crons import libre_cron, strava_cron
 from src.glucose import Glucose
 from src.strava import Strava
 from src.utils import load_libre_credentials_from_env, load_strava_credentials_from_env
@@ -66,10 +66,10 @@ libre = Glucose(
     PostgresManager,
 )
 # Instantiate the Strava class
-# strava = Strava(
-#     *load_strava_credentials_from_env(),
-#     PostgresManager,
-# )
+strava = Strava(
+    *load_strava_credentials_from_env(),
+    PostgresManager,
+)
 
 
 # Add routing
@@ -87,7 +87,8 @@ app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=cron, args=[libre, libre], trigger="interval", seconds=300)
+scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
+scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=18000)
 
 with app.app_context():
     scheduler.start()
