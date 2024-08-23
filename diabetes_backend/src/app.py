@@ -21,10 +21,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 # Configuration settings
 from src.views.home import Home
 from src.auth import AuthenticationManagement
-from src.crons import libre_cron, strava_cron
+from src.crons import libre_cron  # , strava_cron
 from src.glucose import Glucose
-from src.strava import Strava
-from src.utils import load_libre_credentials_from_env, load_strava_credentials_from_env
+
+# from src.strava import Strava
+from src.utils import (
+    load_libre_credentials_from_env,
+)  # , load_strava_credentials_from_env
 from src.schemas import GlucoseSchema
 from src.views.raw_data import RawData
 from src.database_manager import PostgresManager
@@ -53,8 +56,8 @@ logging.basicConfig(
 # Initialise Flask
 app = Flask(__name__)
 
-# In the simplest case, initialize the Flask-Cors extension with default arguments
-# in order to allow CORS for all domains on all routes.
+# In the simplest case, initialize the Flask-Cors extension with
+# default arguments in order to allow CORS for all domains on all routes.
 # See the full list of options in the documentation.
 # https://flask-cors.readthedocs.io/en/3.0.7/
 CORS(app)
@@ -66,10 +69,10 @@ libre = Glucose(
     PostgresManager,
 )
 # Instantiate the Strava class
-strava = Strava(
-    *load_strava_credentials_from_env(),
-    PostgresManager,
-)
+# strava = Strava(
+#     *load_strava_credentials_from_env(),
+#     PostgresManager,
+# )
 
 
 # Add routing
@@ -88,7 +91,8 @@ app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
-scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=18000)
+# scheduler.add_job(func=strava_cron, args=[strava],
+# trigger="interval", seconds=18000)
 
 with app.app_context():
     scheduler.start()
@@ -99,6 +103,6 @@ if __name__ == "__main__":
     # Shut down the scheduler when exiting the app
     atexit.register(lambda: scheduler.shutdown())
 
-    # Disable flask reloading the app on error, just let it die in dramatic fashion.
-    # This also avoids multiple instances of any future cron jobs
+    # Disable flask reloading the app on error, just let it die in dramatic
+    # fashion. This also avoids multiple instances of any future cron jobs.
     app.run(use_reloader=False, port=int(PORT), host=HOST, threaded=True)
