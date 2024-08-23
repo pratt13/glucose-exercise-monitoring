@@ -60,7 +60,7 @@ app = Flask(__name__)
 # default arguments in order to allow CORS for all domains on all routes.
 # See the full list of options in the documentation.
 # https://flask-cors.readthedocs.io/en/3.0.7/
-CORS(app)
+CORS(app, origins=["http://localhost:5173"])
 
 
 libre = Glucose(
