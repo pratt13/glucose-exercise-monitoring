@@ -14,4 +14,4 @@ CMD ["python", "-m", "flask", "run", "--host", "0.0.0.0"]
 
 FROM base AS backend_unit
 WORKDIR /
-CMD python -m unittest discover -s ./src/unit_tests/ -p '*_test.py'
+CMD ["python", "-m", "unittest", "discover", "-s", "./src/unit_tests/", "-p", "'*_test.py'"]
