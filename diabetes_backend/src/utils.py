@@ -25,3 +25,12 @@ def load_strava_credentials_from_env():
         os.getenv("STRAVA_CLIENT_SECRET"),
         os.getenv("STRAVA_REFRESH_TOKEN"),
     )
+
+
+def compute_time_series_average(data):
+    """
+    Given a list of tuples (time, value) compute the average glucose between
+    the maximum windows.
+    """
+    # TODO
+    return 5.0

@@ -19,6 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 
 # Configuration settings
+from src.views.average import AverageGlucose
 from src.views.home import Home
 from src.auth import AuthenticationManagement
 from src.crons import libre_cron  # , strava_cron
@@ -85,7 +86,13 @@ GlucoseRecords = RawData.as_view(
     GlucoseSchema(),
     libre,
 )
+GlucoseAverage = AverageGlucose.as_view(
+    "glucose_average",
+    GlucoseSchema(),
+    libre,
+)
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
+app.add_url_rule("/glucose/average", view_func=GlucoseAverage)
 
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
