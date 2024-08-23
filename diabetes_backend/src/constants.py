@@ -9,6 +9,7 @@ HEADERS = {
 }
 DATETIME_FORMAT = "%m/%d/%Y %I:%M:%S %p"
 STRAVA_DATETIME = "%Y-%m-%d %H:%M:%S"
+TIME_FMT = "%H:%M:%S"
 DATABASE_DATETIME = STRAVA_DATETIME
 DATABASE_TABLE = "glucose_times"
 STRAVA_BASE_URL = "https://www.strava.com"
@@ -25,8 +26,11 @@ STRAVA_ACTIVITIES_COLUMNS = (
     "start_time",
     "end_time",
 )
+
+
 # TODO: Must be a nicer way
 class DATA_TYPES:
+
     STRAVA = "STRAVA"
     LIBRE = "LIBRE"
 
