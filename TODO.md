@@ -20,3 +20,7 @@
 - [ ] Swagger
 - [ ] Terraform and cloud
 - [ ] Correct Flask docker image
+- [ ] Fix stava tokens
+- [ ] New average endpoint
+- [ ] New % in target endpoint
+- [ ] New % of lows in hour intervals (24 column bar chart)
