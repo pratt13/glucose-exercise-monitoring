@@ -24,4 +24,5 @@ def load_strava_credentials_from_env():
         os.getenv("STRAVA_CLIENT_ID"),
         os.getenv("STRAVA_CLIENT_SECRET"),
         os.getenv("STRAVA_REFRESH_TOKEN"),
+        os.getenv("STRAVA_CODE"),
     )

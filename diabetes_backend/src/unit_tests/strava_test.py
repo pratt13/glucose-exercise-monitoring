@@ -1,13 +1,8 @@
-import unittest, os, sys
+import os
+import unittest
 from unittest.mock import patch
-from datetime import datetime as dt
 from requests import HTTPError
-
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.constants import DATA_TYPES, DATETIME_FORMAT, HEADERS, STRAVA_BASE_URL
-from src.glucose import Glucose
+from src.constants import STRAVA_BASE_URL
 from src.strava import Strava
 
 ERROR_MSG = "My test error"
@@ -45,6 +40,7 @@ class TestStrava(unittest.TestCase):
         self.client_id = "myId"
         self.client_secret = "secret"
         self.refresh_token = "my_token"
+        self.code = "my_code"
         # Test data sample - we skip some records for brevity
         self.test_data_1 = {
             "id": "1",
@@ -60,7 +56,7 @@ class TestStrava(unittest.TestCase):
 
     @patch("requests.post")
     @patch("database_manager.PostgresManager")
-    def test_get_token_success(self, mock_database_manager, mock_requests):
+    def test_get_access_token_success(self, mock_database_manager, mock_requests):
         payload = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -73,9 +69,10 @@ class TestStrava(unittest.TestCase):
             self.client_id,
             self.client_secret,
             self.refresh_token,
+            self.code,
             mock_database_manager,
         )
-        result = strava_cls.get_token()
+        result = strava_cls.get_access_token()
 
         self.assertEqual(result, "token")
 
@@ -91,7 +88,7 @@ class TestStrava(unittest.TestCase):
 
     @patch("requests.post")
     @patch("database_manager.PostgresManager")
-    def test_get_token_failure(self, mock_database_manager, mock_requests):
+    def test_get_access_token_failure(self, mock_database_manager, mock_requests):
         payload = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -106,11 +103,12 @@ class TestStrava(unittest.TestCase):
             self.client_id,
             self.client_secret,
             self.refresh_token,
+            self.code,
             mock_database_manager,
         )
 
         with self.assertRaises(HTTPError) as ex:
-            strava_cls.get_token()
+            strava_cls.get_access_token()
         self.assertEqual(str(ex.exception), ERROR_MSG)
 
         # Check the mocks
@@ -142,6 +140,7 @@ class TestStrava(unittest.TestCase):
             self.client_id,
             self.client_secret,
             self.refresh_token,
+            self.code,
             mock_database_manager,
         )
         result = strava_cls.get_activity_data()
@@ -155,7 +154,7 @@ class TestStrava(unittest.TestCase):
         mock_requests_get.assert_called_once()
         mock_requests_get.assert_called_once_with(
             f"{STRAVA_BASE_URL}/api/v3/athlete/activities",
-            headers={"Authorization": f"Authorization: Bearer token"},
+            headers={"Authorization": "Bearer token"},
             params={},
         )
         self.assertEqual(mock_database_manager.call_count, 1)
@@ -184,6 +183,7 @@ class TestStrava(unittest.TestCase):
             self.client_id,
             self.client_secret,
             self.refresh_token,
+            self.code,
             mock_database_manager,
         )
 
@@ -199,7 +199,7 @@ class TestStrava(unittest.TestCase):
         mock_requests_get.assert_called_once()
         mock_requests_get.assert_called_once_with(
             f"{STRAVA_BASE_URL}/api/v3/athlete/activities",
-            headers={"Authorization": f"Authorization: Bearer token"},
+            headers={"Authorization": "Bearer token"},
             params={},
         )
         self.assertEqual(mock_database_manager.call_count, 1)
@@ -213,6 +213,7 @@ class TestStrava(unittest.TestCase):
             self.client_id,
             self.client_secret,
             self.refresh_token,
+            self.code,
             mock_database_manager,
         )
         result = strava_cls.format_activity_data(self.test_data_1)

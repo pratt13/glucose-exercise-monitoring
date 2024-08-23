@@ -18,6 +18,7 @@ TEST_ENV = {
     "STRAVA_CLIENT_ID": "STRAVA_CLIENT_ID",
     "STRAVA_CLIENT_SECRET": "STRAVA_CLIENT_SECRET",
     "STRAVA_REFRESH_TOKEN": "STRAVA_REFRESH_TOKEN",
+    "STRAVA_CODE": "STRAVA_CODE",
 }
 
 
@@ -67,7 +68,7 @@ class TestUtils(unittest.TestCase):
         )
 
     def test_load_strava_credentials_from_env_no_env(self):
-        self.assertEqual(load_strava_credentials_from_env(), (None, None, None))
+        self.assertEqual(load_strava_credentials_from_env(), (None, None, None, None))
 
     @patch.dict(
         os.environ,
@@ -77,5 +78,5 @@ class TestUtils(unittest.TestCase):
     def test_load_strava_credentials_from_env_with_env(self):
         self.assertEqual(
             load_strava_credentials_from_env(),
-            ("STRAVA_CLIENT_ID", "STRAVA_CLIENT_SECRET", "STRAVA_REFRESH_TOKEN"),
+            ("STRAVA_CLIENT_ID", "STRAVA_CLIENT_SECRET", "STRAVA_REFRESH_TOKEN", "STRAVA_CODE",),
         )
