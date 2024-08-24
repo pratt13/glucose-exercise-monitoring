@@ -31,6 +31,17 @@ def compute_time_series_average(data):
     """
     Given a list of tuples (time, value) compute the average glucose between
     the maximum windows.
+
+    Method:
+        - For each point take the value between the two and the time and sum them.
     """
-    # TODO
-    return 5.0
+    total = 0
+    for idx in range(len(data) - 1):
+        total += abs(data[idx][1] - data[idx + 1][1]) / abs(
+            compute_time_diff(data[idx][2], data[idx + 1][2])
+        )
+    return total
+
+
+def compute_time_diff(time1, time2):
+    return (convert_str_to_ts(time1) - convert_str_to_ts(time2)).total_seconds()
