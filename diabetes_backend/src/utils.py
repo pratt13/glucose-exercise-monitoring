@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from src.constants import DATABASE_DATETIME
 import numpy as np
 
 
@@ -38,14 +39,14 @@ def compute_time_series_average(data):
     """
     total = 0
     for idx in range(len(data) - 1):
-        total += abs(data[idx][1] - data[idx + 1][1]) / abs(
+        total += abs(float(data[idx][1] - data[idx + 1][1])) / abs(
             compute_time_diff(data[idx][2], data[idx + 1][2])
         )
-    return total
+    return total * abs(compute_time_diff(data[0][2], data[-1][2]))
 
 
 def compute_time_diff(time1, time2):
-    return (convert_str_to_ts(time1) - convert_str_to_ts(time2)).total_seconds()
+    return (time1 - time2).total_seconds()
 
 
 def window(size):
@@ -53,5 +54,5 @@ def window(size):
 
 
 def time_series_average(data, idx):
-    target_tuple_list = map(lambda x: x[idx], data)
-    return np.convolve(target_tuple_list, window(100), "same")
+    target_tuple_list = list(map(lambda x: float(x[idx]), data))
+    return np.convolve(target_tuple_list, window(100), "same").tolist()

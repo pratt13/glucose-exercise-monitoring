@@ -19,7 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 
 # Configuration settings
-from diabetes_backend.src.views.metric import Metric
+from src.views.metric import Metric
 from src.views.average import AverageGlucose
 from src.views.home import Home
 from src.auth import AuthenticationManagement
