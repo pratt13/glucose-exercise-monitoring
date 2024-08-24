@@ -19,6 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 
 # Configuration settings
+from diabetes_backend.src.views.metric import Metric
 from src.views.average import AverageGlucose
 from src.views.home import Home
 from src.auth import AuthenticationManagement
@@ -28,6 +29,7 @@ from src.glucose import Glucose
 # from src.strava import Strava
 from src.utils import (
     load_libre_credentials_from_env,
+    time_series_average,
 )  # , load_strava_credentials_from_env
 from src.schemas import GlucoseSchema
 from src.views.raw_data import RawData
@@ -91,8 +93,15 @@ GlucoseAverage = AverageGlucose.as_view(
     GlucoseSchema(),
     libre,
 )
+GlucoseAverageSeries = Metric.as_view(
+    "glucose_average_series",
+    GlucoseSchema(),
+    libre,
+    lambda x: time_series_average(x, 1),
+)
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/glucose/average", view_func=GlucoseAverage)
+app.add_url_rule("/glucose/average/series", view_func=GlucoseAverageSeries)
 
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
