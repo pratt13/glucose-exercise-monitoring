@@ -20,7 +20,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 # Configuration settings
 from src.views.metric import Metric
-from src.views.average import AverageGlucose
 from src.views.home import Home
 from src.auth import AuthenticationManagement
 from src.crons import libre_cron  # , strava_cron
@@ -28,6 +27,7 @@ from src.glucose import Glucose
 
 # from src.strava import Strava
 from src.utils import (
+    compute_time_series_average,
     load_libre_credentials_from_env,
     time_series_average,
 )  # , load_strava_credentials_from_env
@@ -88,10 +88,11 @@ GlucoseRecords = RawData.as_view(
     GlucoseSchema(),
     libre,
 )
-GlucoseAverage = AverageGlucose.as_view(
-    "glucose_average",
+GlucoseAverage = Metric.as_view(
+    "glucose_average_series",
     GlucoseSchema(),
     libre,
+    compute_time_series_average,
 )
 GlucoseAverageSeries = Metric.as_view(
     "glucose_average_series",
