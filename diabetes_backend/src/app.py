@@ -27,9 +27,12 @@ from src.glucose import Glucose
 
 # from src.strava import Strava
 from src.utils import (
+    aggregate_data,
     compute_time_series_average,
     load_libre_credentials_from_env,
+    nday_average,
     time_series_average,
+    todo,
 )  # , load_strava_credentials_from_env
 from src.schemas import GlucoseSchema
 from src.views.raw_data import RawData
@@ -89,7 +92,7 @@ GlucoseRecords = RawData.as_view(
     libre,
 )
 GlucoseAverage = Metric.as_view(
-    "glucose_average_series",
+    "glucose_average",
     GlucoseSchema(),
     libre,
     compute_time_series_average,
@@ -100,9 +103,30 @@ GlucoseAverageSeries = Metric.as_view(
     libre,
     lambda x: time_series_average(x, 1),
 )
+GlucoseRollingAverage = Metric.as_view(
+    "glucose_rolling_average",
+    GlucoseSchema(),
+    libre,
+    lambda x: nday_average(x, 2, 1, 7),
+)
+GlucoseAggregateData = Metric.as_view(
+    "glucose_aggregate_data",
+    GlucoseSchema(),
+    libre,
+    lambda x: aggregate_data(x, 2, 1),
+)
+Test = Metric.as_view(
+    "test",
+    GlucoseSchema(),
+    libre,
+    lambda x: todo(x, 2, 1),
+)
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/glucose/average", view_func=GlucoseAverage)
 app.add_url_rule("/glucose/average/series", view_func=GlucoseAverageSeries)
+app.add_url_rule("/glucose/average/sevenday", view_func=GlucoseRollingAverage)
+app.add_url_rule("/glucose/average/aggregate", view_func=GlucoseAggregateData)
+app.add_url_rule("/glucose/average/test", view_func=Test)
 
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
