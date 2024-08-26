@@ -98,9 +98,9 @@ def aggregate_data(data, date_index, glucose_index):
     }
 
 
-def todo(data, date_index, glucose_index):
+def aggregate_glucose_data(data, date_index, glucose_index, interval="15T"):
     """
-    Bucket the data into 5 minute intervals
+    Bucket the data into intervals, default 15minute
     Compute the average
     Variance
     """
@@ -117,7 +117,7 @@ def todo(data, date_index, glucose_index):
         lambda t: t.replace(day=31, year=2000, month=12)
     )
     raw_data = (
-        df.groupby(pd.Grouper(key="time", freq="5T"))["raw"].apply(list).to_list()
+        df.groupby(pd.Grouper(key="time", freq=interval))["raw"].apply(list).to_list()
     )
 
     # ## Aggregate the data into 5 minute intervals
@@ -131,14 +131,15 @@ def todo(data, date_index, glucose_index):
     # Group the data into raw values then regroup via aggregation
     # raw_df = df
     # raw_df["raw"] = df.groupby(pd.Grouper(key='time', freq='5T'))["raw"].apply(list)
-    df = df.groupby([pd.Grouper(key="time", freq="5T")])["raw"].agg(
-        ["mean", "median", "var", "count", "std"]
+    df = df.groupby([pd.Grouper(key="time", freq=interval)])["raw"].agg(
+        ["mean", "median", "var", "count", "std", "max", "min"]
     )
     logger.info(df)
     # Format the time column
-    df.index = df.index.strftime("%H:%m")
+    df.index = df.index.strftime("%H:%M")
     # Crude hack for NaN
-    df.fillna(0)
+    df = df.fillna(0)
+    logger.error(df)
     return {
         "intervals": list(df.index.values),
         "mean": df["mean"].to_list(),
@@ -147,4 +148,6 @@ def todo(data, date_index, glucose_index):
         "var": df["var"].to_list(),
         "raw": raw_data,
         "std": df["std"].to_list(),
+        "max": df["max"].to_list(),
+        "min": df["min"].to_list(),
     }
