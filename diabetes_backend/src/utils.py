@@ -8,9 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute_epoch(ts, fmt):
-    # utc_time = datetime.strptime(ts, fmt)
-    return (ts - datetime(1970, 1, 1)).total_seconds()
+def compute_epoch(ts):
+    return int(ts.strftime("%s"))
 
 
 def convert_str_to_ts(ts, fmt):
@@ -98,7 +97,7 @@ def aggregate_data(data, date_index, glucose_index):
     }
 
 
-def aggregate_glucose_data(data, date_index, glucose_index, interval="15T"):
+def aggregate_glucose_data(data, date_index, glucose_index, interval="15min"):
     """
     Bucket the data into intervals, default 15minute
     Compute the average
@@ -121,16 +120,16 @@ def aggregate_glucose_data(data, date_index, glucose_index, interval="15T"):
     )
 
     # ## Aggregate the data into 5 minute intervals
-    # agg_df = df.groupby(pd.Grouper(key='time', freq='5T')).count()
-    # agg_df["Mean"] = df.groupby(pd.Grouper(key='time', freq='5T')).mean()
-    # agg_df["median"] = df.groupby(pd.Grouper(key='time', freq='5T')).median()
-    # agg_df["raw"] = df.groupby(pd.Grouper(key='time', freq='5T'))["raw"].apply(list)
+    # agg_df = df.groupby(pd.Grouper(key='time', freq='5min')).count()
+    # agg_df["Mean"] = df.groupby(pd.Grouper(key='time', freq='5min')).mean()
+    # agg_df["median"] = df.groupby(pd.Grouper(key='time', freq='5min')).median()
+    # agg_df["raw"] = df.groupby(pd.Grouper(key='time', freq='5min'))["raw"].apply(list)
     # # Format the time column
     # agg_df.index = agg_df.index.strftime('%H:%m')
 
     # Group the data into raw values then regroup via aggregation
     # raw_df = df
-    # raw_df["raw"] = df.groupby(pd.Grouper(key='time', freq='5T'))["raw"].apply(list)
+    # raw_df["raw"] = df.groupby(pd.Grouper(key='time', freq='5min'))["raw"].apply(list)
     df = df.groupby([pd.Grouper(key="time", freq=interval)])["raw"].agg(
         ["mean", "median", "var", "count", "std", "max", "min"]
     )

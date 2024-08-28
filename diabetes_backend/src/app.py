@@ -22,17 +22,18 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from src.views.metric import Metric
 from src.views.home import Home
 from src.auth import AuthenticationManagement
-from src.crons import libre_cron  # , strava_cron
+from src.crons import libre_cron, strava_cron
 from src.glucose import Glucose
 
-# from src.strava import Strava
+from src.strava import Strava
 from src.utils import (
     aggregate_glucose_data,
     compute_time_series_average,
     load_libre_credentials_from_env,
     nday_average,
     time_series_average,
-)  # , load_strava_credentials_from_env
+    load_strava_credentials_from_env,
+)
 from src.schemas import GlucoseSchema
 from src.views.raw_data import RawData
 from src.database_manager import PostgresManager
@@ -74,10 +75,10 @@ libre = Glucose(
     PostgresManager,
 )
 # Instantiate the Strava class
-# strava = Strava(
-#     *load_strava_credentials_from_env(),
-#     PostgresManager,
-# )
+strava = Strava(
+    *load_strava_credentials_from_env(),
+    PostgresManager,
+)
 
 
 # Add routing
@@ -112,7 +113,7 @@ Aggregate15min = Metric.as_view(
     "test",
     GlucoseSchema(),
     libre,
-    lambda x: aggregate_glucose_data(x, 2, 1, interval="15T"),
+    lambda x: aggregate_glucose_data(x, 2, 1, interval="15min"),
 )
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/glucose/average", view_func=GlucoseAverage)
@@ -124,8 +125,7 @@ app.add_url_rule("/glucose/aggregate/15min", view_func=Aggregate15min)
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
-# scheduler.add_job(func=strava_cron, args=[strava],
-# trigger="interval", seconds=18000)
+scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=1800)
 
 with app.app_context():
     scheduler.start()
