@@ -2,7 +2,7 @@ import logging
 from datetime import datetime as dt
 from flask import request
 from src.constants import DATABASE_DATETIME
-from src.utils import compute_time_series_average, convert_ts_to_str
+from src.utils import convert_ts_to_str
 from src.views.base import BaseView
 
 logger = logging.getLogger("app")

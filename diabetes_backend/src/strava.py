@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Strava:
-    # TODO while loop
-    def __init__(self, client_id, client_secret, refresh_token, db_manager):
+    def __init__(self, client_id, client_secret, refresh_token, code, db_manager):
         self.client_id = client_id
         self.client_secret = client_secret
         if refresh_token is not None:
@@ -20,10 +19,9 @@ class Strava:
             self.refresh_token = refresh_token
         else:
             logger.debug("Generating refresh token via authorization code")
-            self.code = os.environ["STRAVA_CODE"]
+            self.code = code
             self.refresh_token = self.get_refresh_token()
 
-        # self.get_refresh_token()
         self.db_manager = db_manager(
             os.environ["DB_USERNAME"],
             os.environ["DB_PASSWORD"],
@@ -52,7 +50,6 @@ class Strava:
         self._refresh_token = value
 
     def get_refresh_token(self):
-        logger.debug("===================================================")
         logger.debug("get_refresh_token()")
         payload = {
             "client_id": self.client_id,
@@ -61,33 +58,13 @@ class Strava:
             "grant_type": "authorization_code",
         }
         res = requests.post(f"{STRAVA_BASE_URL}/oauth/token", data=payload)
+        return res.json().get("refresh_token")
 
-        logger.info("9999999999999999999999999999999999")
-        js = res.json()
-        logger.info(res)
-        logger.info(js)
-        access_token = js.get("refresh_token")
-        return access_token
-
-    def renew_refresh_token(self):
-        logger.debug("===================================================")
-        logger.debug("renew_refresh_token()")
-        payload = {
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "refresh_token": self.refresh_token,
-            "grant_type": "refresh_token",
-        }
-        res = requests.post(f"{STRAVA_BASE_URL}/oauth/token", data=payload)
-        js = res.json()
-        access_token = js.get("access_token")
-        return access_token
-
-    def get_token(self):
+    def get_access_token(self):
         """
         Get Strava Access token
         """
-        logger.debug("get_token()")
+        logger.debug("get_access_token()")
         payload = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -100,9 +77,8 @@ class Strava:
         )
         res.raise_for_status()
         res_json = res.json()
-        logger.debug(res_json)
+        # Get access token and update refresh token
         access_token = res_json.get("access_token")
-        # TODO: Handle refresh tokens
         self.refresh_token = res_json.get("refresh_token")
         return access_token
 
@@ -112,7 +88,7 @@ class Strava:
         Records per page are the number of records to fetch.
         Page is the page from the api to fetch.
         """
-        headers = {"Authorization": f"Bearer {self.get_token()}"}
+        headers = {"Authorization": f"Bearer {self.get_access_token()}"}
         response: dict = requests.get(
             f"{STRAVA_BASE_URL}/api/v3/athlete/activities",
             headers=headers,
