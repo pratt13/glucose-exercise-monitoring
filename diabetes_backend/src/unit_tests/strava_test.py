@@ -21,19 +21,6 @@ class MockRequest:
             raise HTTPError(ERROR_MSG)
 
 
-POSTGRES_ENV = {
-    "DB_HOST": "host",
-    "DB_USERNAME": "user",
-    "DB_NAME": "dbname",
-    "DB_PASSWORD": "password",
-}
-
-
-@patch.dict(
-    os.environ,
-    POSTGRES_ENV,
-    clear=True,
-)
 class TestStrava(unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -53,6 +40,8 @@ class TestStrava(unittest.TestCase):
             "start_latlng": [4.4, 6.2],
             "end_latlng": [5.5, 7.1],
         }
+        self.start_date = "01/01/2021"
+        self.end_date = "01/01/2022"
 
     @patch("requests.post")
     @patch("database_manager.PostgresManager")
@@ -81,10 +70,7 @@ class TestStrava(unittest.TestCase):
         mock_requests.assert_called_once_with(
             f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
         )
-        self.assertEqual(mock_database_manager.call_count, 1)
-        mock_database_manager.assert_called_once_with(
-            "user", "password", "host", "dbname"
-        )
+        self.assertEqual(mock_database_manager.call_count, 0)
 
     @patch("requests.post")
     @patch("database_manager.PostgresManager")
@@ -116,10 +102,7 @@ class TestStrava(unittest.TestCase):
         mock_requests.assert_called_once_with(
             f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
         )
-        self.assertEqual(mock_database_manager.call_count, 1)
-        mock_database_manager.assert_called_once_with(
-            "user", "password", "host", "dbname"
-        )
+        self.assertEqual(mock_database_manager.call_count, 0)
 
     @patch("requests.get")
     @patch("requests.post")
@@ -157,10 +140,7 @@ class TestStrava(unittest.TestCase):
             headers={"Authorization": "Bearer token"},
             params={},
         )
-        self.assertEqual(mock_database_manager.call_count, 1)
-        mock_database_manager.assert_called_once_with(
-            "user", "password", "host", "dbname"
-        )
+        self.assertEqual(mock_database_manager.call_count, 0)
 
     @patch("requests.get")
     @patch("requests.post")
@@ -202,10 +182,7 @@ class TestStrava(unittest.TestCase):
             headers={"Authorization": "Bearer token"},
             params={},
         )
-        self.assertEqual(mock_database_manager.call_count, 1)
-        mock_database_manager.assert_called_once_with(
-            "user", "password", "host", "dbname"
-        )
+        self.assertEqual(mock_database_manager.call_count, 0)
 
     @patch("database_manager.PostgresManager")
     def test_format_activity_data(self, mock_database_manager):
@@ -233,4 +210,20 @@ class TestStrava(unittest.TestCase):
                 "start_longitude": 6.2,
                 "end_longitude": 7.1,
             },
+        )
+
+    @patch("database_manager.PostgresManager")
+    def test_get_records(self, mock_database_manager):
+        mock_database_manager.get_records.return_value = [[1, 2, 3], [4, 5, 6]]
+        strava_cls = Strava(
+            self.client_id,
+            self.client_secret,
+            self.refresh_token,
+            self.code,
+            mock_database_manager,
+        )
+        result = strava_cls.get_records(self.start_date, self.end_date)
+        self.assertEqual(
+            result,
+            [[1, 2, 3], [4, 5, 6]],
         )

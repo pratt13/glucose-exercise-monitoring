@@ -1,4 +1,3 @@
-import os
 import requests
 import logging
 from datetime import datetime
@@ -20,12 +19,7 @@ class Glucose:
         self.auth_manager = auth(email, password)
         self.email = email
         self.password = password
-        self.db_manager = db_manager(
-            os.environ["DB_USERNAME"],
-            os.environ["DB_PASSWORD"],
-            os.environ["DB_HOST"],
-            os.environ["DB_NAME"],
-        )
+        self.db_manager = db_manager
 
     @property
     def name(self):
@@ -35,7 +29,7 @@ class Glucose:
         """
         Retrieve patient IDs from LibreLinkUp.
         """
-        logger.info(f"Getting patient ids for email")
+        logger.info("Getting patient ids for email")
         token = self.auth_manager.get_token()
         endpoint = "/llu/connections"
         headers = {**HEADERS, "Authorization": f"Bearer {token}"}
@@ -46,7 +40,7 @@ class Glucose:
 
     def get_cgm_data(self, patient_id):
         """Retrieve CGM data for a specific patient from LibreLinkUp."""
-        logger.info(f"Getting CGM data")
+        logger.info("Getting CGM data")
         token = self.auth_manager.get_token()
         endpoint = f"/llu/connections/{patient_id}/graph"
         headers = {**HEADERS, "Authorization": f"Bearer {token}"}

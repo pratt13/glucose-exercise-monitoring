@@ -65,16 +65,23 @@ app = Flask(__name__)
 # https://flask-cors.readthedocs.io/en/3.0.7/
 CORS(app, origins=["http://localhost:5173"])
 
-
+# Instantiate DB manager
+postgres_manager = PostgresManager(
+    os.environ["DB_USERNAME"],
+    os.environ["DB_PASSWORD"],
+    os.environ["DB_HOST"],
+    os.environ["DB_NAME"],
+)
+# Instantiate the Glucose class
 libre = Glucose(
     *load_libre_credentials_from_env(),
     AuthenticationManagement,
-    PostgresManager,
+    postgres_manager,
 )
 # Instantiate the Strava class
 strava = Strava(
     *load_strava_credentials_from_env(),
-    PostgresManager,
+    postgres_manager,
 )
 
 
@@ -88,6 +95,11 @@ GlucoseRecords = RawData.as_view(
     TimeIntervalSchema(),
     libre,
 )
+StravaRecords = RawData.as_view(
+    "strava",
+    TimeIntervalSchema(),
+    strava,
+)
 Aggregate15min = Metric.as_view(
     "test",
     TimeIntervalSchema(),
@@ -95,6 +107,7 @@ Aggregate15min = Metric.as_view(
     lambda x: aggregate_glucose_data(x, 2, 1, interval="15min"),
 )
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
+app.add_url_rule("/strava/", view_func=StravaRecords)
 app.add_url_rule("/glucose/aggregate/15min", view_func=Aggregate15min)
 
 

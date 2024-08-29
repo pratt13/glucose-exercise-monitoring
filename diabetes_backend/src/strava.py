@@ -21,13 +21,7 @@ class Strava:
             logger.debug("Generating refresh token via authorization code")
             self.code = code
             self.refresh_token = self.get_refresh_token()
-
-        self.db_manager = db_manager(
-            os.environ["DB_USERNAME"],
-            os.environ["DB_PASSWORD"],
-            os.environ["DB_HOST"],
-            os.environ["DB_NAME"],
-        )
+        self.db_manager = db_manager
 
     @property
     def name(self):
@@ -135,6 +129,17 @@ class Strava:
         }
         logger.debug(f"Formatted Record: {fmt_record}")
         return fmt_record
+
+    def get_records(self, start_time, end_time):
+        """
+        Get the strava data between the end/start times
+        """
+        logger.debug(f"get_records({start_time}, {end_time})")
+        return self._get_records(start_time, end_time)
+
+    def _get_records(self, start_time, end_time):
+        logger.debug(f"_get_records({start_time}, {end_time})")
+        return self.db_manager.get_records(DATA_TYPES.STRAVA, start_time, end_time)
 
     def update_data(self, records_per_page=1, page=1):
         """
