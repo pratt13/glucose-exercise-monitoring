@@ -38,7 +38,6 @@ def load_strava_credentials_from_env():
     )
 
 
-
 def aggregate_glucose_data(data, date_index, glucose_index, interval="15min"):
     """
     Bucket the data into intervals, default 15minute
@@ -77,4 +76,24 @@ def aggregate_glucose_data(data, date_index, glucose_index, interval="15min"):
         "std": df["std"].to_list(),
         "max": df["max"].to_list(),
         "min": df["min"].to_list(),
+    }
+
+
+def aggregate_strava_data(data, distance_index, activity_index):
+    """
+    Count the different types of activities by time interval returning the
+    count and total distance covered
+    """
+    activity_list = list(map(lambda x: x[activity_index], data))
+    distance_list = list(map(lambda x: x[distance_index], data))
+
+    df = pd.DataFrame({"activity": activity_list, "distance": distance_list})
+    df = df.groupby(["activity"])["distance"].agg(["sum", "count"])
+
+    # Crude hack for NaN
+    df = df.fillna(0)
+    return {
+        "activity": list(df.index.values),
+        "total_distance": df["sum"].to_list(),
+        "number_activities": df["count"].to_list(),
     }

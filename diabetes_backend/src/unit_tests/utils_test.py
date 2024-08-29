@@ -6,6 +6,7 @@ from datetime import datetime as dt
 from src.constants import DATABASE_DATETIME, DATETIME_FORMAT, STRAVA_DATETIME
 from src.utils import (
     aggregate_glucose_data,
+    aggregate_strava_data,
     convert_str_to_ts,
     convert_ts_to_str,
     load_libre_credentials_from_env,
@@ -110,3 +111,23 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             aggregate_glucose_data(self.test_glucose_data, 1, 2), expected_data
         )
+
+    def test_aggregate_strava_data(self):
+        strava_data = [
+            ("Run", 60.1),
+            ("Run", 10),
+            ("Cycle", 42),
+            ("Run", 10),
+            ("Run", 10),
+            ("Run", 10),
+            ("Cycle", 20),
+        ]
+        expected_data = {
+            "activity": ["Cycle", "Run"],
+            "total_distance": [
+                62,
+                100.1,
+            ],
+            "number_activities": [2, 5],
+        }
+        self.assertEqual(aggregate_strava_data(strava_data, 1, 0), expected_data)
