@@ -44,6 +44,24 @@ The caveat is, the amount of data stored is presumably limited (1 week), so a cs
 
 ## Strava
 
+To access the strava API you need to have a Strava account (obviously) and create a new application that you can use.
+Once done you can get your `client id` and `secret`. These are required for authorization into the app.
+Once retrieved you will need to authorize the application for `read_all` permissions via the URL
+`https://www.strava.com/oauth/authorize?client_id=<YOUR_CODE_HERE>&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=activity:read_all`
+Click the relevant permissions then copy the code from the redirect URL.
+This can be used to authorize via the app, or a refresh token can be retrieved via
+
+```sh
+curl -X POST https://www.strava.com/api/v3/oauth/token \
+  -F client_id=<YOUR_CLIENT_ID> \
+  -F client_secret=<YOUR_CLIENT_SECRET> \
+  -F code=<YOUR_CLIENT_CODE> \
+  -F grant_type=authorization_code
+```
+
+https://developers.strava.com/docs/authentication/#detailsaboutrequestingaccess
+
+
 ## Executing the tasks
 
 ```sh
