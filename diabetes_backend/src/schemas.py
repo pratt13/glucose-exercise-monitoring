@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields
 
 
-class GlucoseSchema(Schema):
+class TimeIntervalSchema(Schema):
     start = fields.Str(required=False)
     end = fields.Str(required=False)

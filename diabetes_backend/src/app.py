@@ -31,7 +31,7 @@ from src.utils import (
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
 )
-from src.schemas import GlucoseSchema
+from src.schemas import TimeIntervalSchema
 from src.views.raw_data import RawData
 from src.database_manager import PostgresManager
 
@@ -85,12 +85,12 @@ home = Home.as_view(
 app.add_url_rule("/", view_func=home)
 GlucoseRecords = RawData.as_view(
     "glucose",
-    GlucoseSchema(),
+    TimeIntervalSchema(),
     libre,
 )
 Aggregate15min = Metric.as_view(
     "test",
-    GlucoseSchema(),
+    TimeIntervalSchema(),
     libre,
     lambda x: aggregate_glucose_data(x, 2, 1, interval="15min"),
 )
