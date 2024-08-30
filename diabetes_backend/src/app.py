@@ -19,10 +19,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 
 # Configuration settings
+from src.data import Data
 from src.views.metric import Metric
 from src.views.home import Home
 from src.auth import AuthenticationManagement
-from src.crons import libre_cron, strava_cron
+from src.crons import data_cron, libre_cron, strava_cron
 from src.glucose import Glucose
 
 from src.strava import Strava
@@ -84,6 +85,10 @@ strava = Strava(
     *load_strava_credentials_from_env(),
     postgres_manager,
 )
+# Instantiate the Data class
+data = Data(
+    postgres_manager,
+)
 
 
 # Add routing
@@ -125,6 +130,7 @@ app.add_url_rule("/strava/summary", view_func=StravaSummary)
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
 scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=1800)
+scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=1800)
 
 with app.app_context():
     scheduler.start()

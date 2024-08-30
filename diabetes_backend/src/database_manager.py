@@ -120,3 +120,32 @@ class PostgresManager:
         conn.close()
 
         return res or []
+
+    def get_filtered_by_id_records(self, data_type, id):
+        """Fetch the records greater than the given id"""
+        logging.debug(f"get_last_record({data_type})")
+        self._validate_data_type(data_type)
+        logger.debug(f"Retrieving data from {TABLE_SCHEMA.NAME[data_type]}")
+        conn = psycopg2.connect(**self.conn_params)
+
+        with conn:
+            with conn.cursor() as curs:
+                curs.execute(
+                    sql.SQL(
+                        "SELECT {table_columns} FROM {table} WHERE {id} <= {id_field} ORDER BY {order_by} "
+                    ).format(
+                        table_columns=sql.SQL(", ").join(
+                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
+                        ),
+                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[data_type]),
+                        table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
+                        id_field=sql.Identifier(TABLE_SCHEMA.INDEX_FIELD[data_type]),
+                        id_value=sql.Literal(id),
+                    )
+                )
+                res = curs.fetchall()
+
+        # leaving contexts doesn't close the connection
+        conn.close()
+
+        return res or []
