@@ -227,3 +227,9 @@ class TestStrava(unittest.TestCase):
             result,
             [[1, 2, 3], [4, 5, 6]],
         )
+
+    def test_update_data_records_found(self):
+        pass
+
+    def test_update_data_no_records_found(self):
+        pass

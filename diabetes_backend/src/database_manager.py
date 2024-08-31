@@ -54,21 +54,26 @@ class PostgresManager:
         conn.close()
 
     def _validate_data_type(self, data_type):
-        if data_type not in (DATA_TYPES.LIBRE, DATA_TYPES.STRAVA):
+        if data_type not in (
+            DATA_TYPES.LIBRE,
+            DATA_TYPES.STRAVA,
+            DATA_TYPES.STRAVA_LIBRE,
+        ):
             raise ValueError(f"Invalid data_type {data_type}")
 
     def _get_default_last_record(self, data_type):
         self._validate_data_type(data_type)
         if data_type == DATA_TYPES.LIBRE:
             return (datetime.datetime(1970, 7, 11, 19, 45, 55), 0)
-        if data_type == DATA_TYPES.STRAVA:
+        elif data_type == DATA_TYPES.STRAVA:
             return [datetime.datetime(1970, 7, 11, 19, 45, 55)]
+        elif data_type == DATA_TYPES.STRAVA_LIBRE:
+            return (datetime.datetime(1970, 7, 11, 19, 45, 55), 0, 0)
 
     def get_last_record(self, data_type):
         """Fetch the last record in the table"""
-        logging.debug("get_last_record()")
         self._validate_data_type(data_type)
-        logger.debug(f"Saving to {TABLE_SCHEMA.NAME[data_type]}")
+        logger.info(f"Getting last record of {TABLE_SCHEMA.NAME[data_type]}")
         conn = psycopg2.connect(**self.conn_params)
 
         with conn:
@@ -123,16 +128,15 @@ class PostgresManager:
 
     def get_filtered_by_id_records(self, data_type, id):
         """Fetch the records greater than the given id"""
-        logging.debug(f"get_last_record({data_type})")
+        logging.debug(f"get_filtered_by_id_records({data_type})")
         self._validate_data_type(data_type)
         logger.debug(f"Retrieving data from {TABLE_SCHEMA.NAME[data_type]}")
         conn = psycopg2.connect(**self.conn_params)
-
         with conn:
             with conn.cursor() as curs:
                 curs.execute(
                     sql.SQL(
-                        "SELECT {table_columns} FROM {table} WHERE {id} <= {id_field} ORDER BY {order_by} "
+                        "SELECT {table_columns} FROM {table} WHERE {id_field} > {id} ORDER BY {order_by} "
                     ).format(
                         table_columns=sql.SQL(", ").join(
                             map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])

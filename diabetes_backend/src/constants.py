@@ -68,7 +68,7 @@ class TABLE_SCHEMA:
     SEARCH_COLUMNS = {
         DATA_TYPES.STRAVA: ["start_time"],
         DATA_TYPES.LIBRE: ["timestamp", "id"],
-        DATA_TYPES.STRAVA_LIBRE: ["timestamp", "id"],
+        DATA_TYPES.STRAVA_LIBRE: ["timestamp", "id", "strava_id"],
     }
     INDEX_FIELD = {
         DATA_TYPES.STRAVA: "id",

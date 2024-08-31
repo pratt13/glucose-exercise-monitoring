@@ -129,8 +129,8 @@ app.add_url_rule("/strava/summary", view_func=StravaSummary)
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
-scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=1800)
-scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=1800)
+scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
+scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=300)
 
 with app.app_context():
     scheduler.start()

@@ -23,12 +23,12 @@ def strava_cron(strava):
         logger.error(f"Failed getting Strava data with exception\n:{e}")
 
 
-def data_cron(strava):
+def data_cron(data):
     """
     Specific CRON for dta to mutate the fetched data
     """
     try:
-        strava.combine_data()
+        data.combine_data()
     except Exception as e:
         logger.error(
             f"Failed combining the strava data with libre ones, exception\n:{e}"
