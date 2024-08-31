@@ -1,10 +1,10 @@
-import os
+from datetiem import datetime
 import requests
 import logging
 
 
-from src.constants import DATA_TYPES, STRAVA_BASE_URL
-from src.utils import compute_epoch
+from src.constants import DATA_TYPES, STRAVA_BASE_URL, STRAVA_DATETIME
+from src.utils import compute_epoch, convert_str_to_ts, convert_ts_to_str
 
 
 logger = logging.getLogger(__name__)
@@ -114,7 +114,11 @@ class Strava:
         # TOOD: VAlidate schema
         start_time = record.get("start_date")
         # Compute
-        end_time = record.get("start_date")
+        end_time = convert_ts_to_str(
+            convert_str_to_ts(record.get("start_date"), STRAVA_DATETIME)
+            + datetime.timedelta(seconds=record.get("moving_time", 0)),
+            STRAVA_DATETIME,
+        )
         default_lat_lang = [0, 0]
         start = record.get("start_latlng") or default_lat_lang
         end = record.get("end_latlng") or default_lat_lang

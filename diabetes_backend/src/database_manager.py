@@ -136,7 +136,7 @@ class PostgresManager:
             with conn.cursor() as curs:
                 curs.execute(
                     sql.SQL(
-                        "SELECT {table_columns} FROM {table} WHERE {id_field} > {id} ORDER BY {order_by} "
+                        "SELECT {table_columns} FROM {table} WHERE {id_field} > {id_value} ORDER BY {order_by} "
                     ).format(
                         table_columns=sql.SQL(", ").join(
                             map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])

@@ -31,14 +31,18 @@ class Data:
         unchecked_strava_records = self.db_manager.get_filtered_by_id_records(
             DATA_TYPES.STRAVA, checked_strava_id
         )
+        logger.debug("-" * 100)
         logger.debug(f"unchecked_strava_records: {unchecked_strava_records}")
         new_entry_id = last_strava_libre_record[1]
         # Iterate through the unchecked records in the libre db to find them either side of a window
         for unchecked_strava_record in unchecked_strava_records:
             start_time = unchecked_strava_record[5]
             end_time = unchecked_strava_record[6]
-            libre_records = self.db_manager.get_last_record(
+            libre_records = self.db_manager.get_records(
                 DATA_TYPES.LIBRE, start_time, end_time
+            )
+            logger.debug(
+                f"Found {len(libre_records)} to add between {start_time} and {end_time}"
             )
             for libre_record in libre_records:
                 new_records.append(
