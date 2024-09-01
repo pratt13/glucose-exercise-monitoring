@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import call, patch
 
-from src.crons import strava_cron, libre_cron
+from src.crons import data_cron, strava_cron, libre_cron
 
 
 class TestCrons(unittest.TestCase):
@@ -31,3 +31,9 @@ class TestCrons(unittest.TestCase):
     def test_strava_cron(self, mock_strava):
         strava_cron(mock_strava)
         mock_strava.update_data.assert_called_once_with(records_per_page=100, page=1)
+
+    @patch("data.Data")
+    def test_(self, mock_data):
+        data_cron(mock_data)
+        mock_data.combine_data.assert_called_once()
+        mock_data.combine_data.assert_called_once_with()
