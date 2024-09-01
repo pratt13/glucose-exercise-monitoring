@@ -57,6 +57,7 @@ class PostgresManager:
         if data_type not in (
             DATA_TYPES.LIBRE,
             DATA_TYPES.STRAVA,
+            DATA_TYPES.STRAVA_LIBRE,
         ):
             raise ValueError(f"Invalid data_type {data_type}")
 
@@ -66,6 +67,8 @@ class PostgresManager:
             return (datetime.datetime(1970, 7, 11, 19, 45, 55), 0)
         elif data_type == DATA_TYPES.STRAVA:
             return [datetime.datetime(1970, 7, 11, 19, 45, 55)]
+        elif data_type == DATA_TYPES.STRAVA_LIBRE:
+            return (datetime.datetime(1970, 7, 11, 19, 45, 55), 0, 0)
 
     def get_last_record(self, data_type):
         """Fetch the last record in the table"""
