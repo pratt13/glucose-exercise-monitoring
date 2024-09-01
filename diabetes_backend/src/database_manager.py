@@ -69,9 +69,8 @@ class PostgresManager:
 
     def get_last_record(self, data_type):
         """Fetch the last record in the table"""
-        logging.debug("get_last_record()")
         self._validate_data_type(data_type)
-        logger.debug(f"Saving to {TABLE_SCHEMA.NAME[data_type]}")
+        logger.info(f"Getting last record of {TABLE_SCHEMA.NAME[data_type]}")
         conn = psycopg2.connect(**self.conn_params)
 
         with conn:
