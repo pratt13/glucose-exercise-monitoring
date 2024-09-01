@@ -25,7 +25,7 @@ def strava_cron(strava):
 
 def data_cron(data):
     """
-    Specific CRON for dta to mutate the fetched data
+    Specific CRON for data to mutate the fetched data
     """
     try:
         data.combine_data()

@@ -17,25 +17,39 @@ from flask_cors import CORS
 import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
 
+# SqlAlchemy
+from sqlalchemy import create_engine
+
+
+from src.data import DataManager
+from src.strava import StravaManager
+from src.glucose import GlucoseManager
+from src.database_manager import DatabaseManager
 
 # Configuration settings
-from src.data import Data
 from src.views.metric import Metric
 from src.views.home import Home
 from src.auth import AuthenticationManagement
 from src.crons import data_cron, libre_cron, strava_cron
-from src.glucose import Glucose
 
-from src.strava import Strava
 from src.utils import (
     aggregate_glucose_data,
-    aggregate_strava_data,
+    glucose_quartile_data,
+    glucose_raw_data,
+    group_glucose_data_by_day,
+    libre_data_bucketed_day_overview,
+    libre_extremes_in_buckets,
+    libre_hba1c,
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
+    run_sum_strava_data,
+    strava_glucose_raw_data,
+    strava_raw_data,
 )
-from src.schemas import TimeIntervalSchema
-from src.views.raw_data import RawData
-from src.database_manager import PostgresManager
+from src.schemas import TimeIntervalSchema, TimeIntervalWithBucketSchema
+
+# SQL
+from src.database.tables import Base
 
 # Environment variables - default to non-docker patterns
 ENV_FILE = os.getenv("ENV_FILE", ".env.local")
@@ -67,83 +81,125 @@ app = Flask(__name__)
 # https://flask-cors.readthedocs.io/en/3.0.7/
 CORS(app, origins=["http://localhost:5173"])
 
-# Instantiate DB manager
-postgres_manager = PostgresManager(
-    os.environ["DB_USERNAME"],
-    os.environ["DB_PASSWORD"],
-    os.environ["DB_HOST"],
-    os.environ["DB_NAME"],
-)
-# Instantiate the Glucose class
-libre = Glucose(
-    *load_libre_credentials_from_env(),
-    AuthenticationManagement,
-    postgres_manager,
-)
+# SQLAlchemy engine
+# TODO - protect env vars
+root = "diabetes_root:diabetes_root"
+host = os.environ["DB_HOST"]
+db_name = os.environ["DB_NAME"]
+url = f"postgresql+psycopg2://{root}@{host}:5432/{db_name}"
+engine = create_engine(url, echo=True)
+
+
+# Create if not exists
+Base.metadata.create_all(engine)
+
+
+# Instantiate the new database manager
+db_manager = DatabaseManager(engine)
 # Instantiate the Strava class
-strava = Strava(
-    *load_strava_credentials_from_env(),
-    postgres_manager,
+strava = StravaManager(*load_strava_credentials_from_env(), db_manager)
+# Instantiate the new glucose class
+glucose_manager = GlucoseManager(
+    *load_libre_credentials_from_env(), AuthenticationManagement, db_manager
 )
 # Instantiate the Data class
-data = Data(
-    postgres_manager,
-)
-
+data_manager = DataManager(db_manager)
 
 # Add routing
 home = Home.as_view(
     "home",
 )
 app.add_url_rule("/", view_func=home)
-GlucoseRecords = RawData.as_view(
+GlucoseRecords = Metric.as_view(
     "glucose",
     TimeIntervalSchema(),
-    libre,
+    glucose_manager,
+    lambda x: glucose_raw_data(x),
 )
-StravaRecords = RawData.as_view(
+StravaRecords = Metric.as_view(
     "strava",
     TimeIntervalSchema(),
     strava,
+    lambda x: strava_raw_data(x),
 )
-StravaLibreRecords = RawData.as_view(
+StravaLibreRecords = Metric.as_view(
     "strava-libre",
     TimeIntervalSchema(),
-    data,
+    data_manager,
+    lambda x: strava_glucose_raw_data(x),
+)
+Hba1c = Metric.as_view(
+    "hba1c",
+    TimeIntervalSchema(),
+    glucose_manager,
+    lambda x: libre_hba1c(x),
+)
+LibrePercentage = Metric.as_view(
+    "libre-percentage",
+    TimeIntervalSchema(),
+    glucose_manager,
+    lambda x: libre_extremes_in_buckets(x),
+)
+LibrePercentageDayOverview = Metric.as_view(
+    "libre-percentage-day-overview",
+    TimeIntervalWithBucketSchema(),
+    glucose_manager,
+    lambda x, **kwargs: libre_data_bucketed_day_overview(x, **kwargs),
 )
 Aggregate15min = Metric.as_view(
     "test",
     TimeIntervalSchema(),
-    libre,
-    lambda x: aggregate_glucose_data(x, 2, 1, interval="15min"),
+    glucose_manager,
+    lambda x, **kwargs: aggregate_glucose_data(x, **kwargs),
 )
 StravaSummary = Metric.as_view(
     "strava-summary",
     TimeIntervalSchema(),
     strava,
-    lambda x: aggregate_strava_data(x, 1, 2),
+    lambda x: run_sum_strava_data(x),
 )
-StravaLibreRaw = RawData.as_view(
-    "strava-libre-raw",
+StravaLibreSummary = Metric.as_view(
+    "strava-libre-summary",
     TimeIntervalSchema(),
-    data,
+    data_manager,
+    lambda x: glucose_quartile_data(x),
+)
+LibreQuartileSummary = Metric.as_view(
+    "libre-quartile-data",
+    TimeIntervalSchema(),
+    glucose_manager,
+    lambda x: glucose_quartile_data(x),
+)
+GroupedLibreDayData = Metric.as_view(
+    "libre-grouped-day-data",
+    TimeIntervalSchema(),
+    glucose_manager,
+    lambda x: group_glucose_data_by_day(x),
 )
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/strava/", view_func=StravaRecords)
 app.add_url_rule("/strava-libre/", view_func=StravaLibreRecords)
 app.add_url_rule("/glucose/aggregate/15min", view_func=Aggregate15min)
 app.add_url_rule("/strava/summary", view_func=StravaSummary)
-
+app.add_url_rule("/strava-libre/summary", view_func=StravaLibreSummary)
+app.add_url_rule("/glucose/hba1c", view_func=Hba1c)
+app.add_url_rule("/glucose/percentage", view_func=LibrePercentage)
+app.add_url_rule("/glucose/percentage/day", view_func=LibrePercentageDayOverview)
+app.add_url_rule("/glucose/quartile", view_func=LibreQuartileSummary)
+app.add_url_rule("/glucose/days", view_func=GroupedLibreDayData)
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
+# TO disable
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
+scheduler.add_job(
+    func=libre_cron, args=[glucose_manager], trigger="interval", seconds=300
+)
 scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
-scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=300)
+scheduler.add_job(func=data_cron, args=[data_manager], trigger="interval", seconds=30)
+
 
 with app.app_context():
     scheduler.start()
-
 
 if __name__ == "__main__":
 

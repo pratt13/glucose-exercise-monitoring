@@ -3,15 +3,15 @@ import logging
 from datetime import timedelta
 
 
-from src.base import Base
-from src.constants import DATA_TYPES, STRAVA_BASE_URL, STRAVA_DATETIME, TABLE_SCHEMA
+from src.database.tables import Strava
+from src.constants import STRAVA_BASE_URL, STRAVA_DATETIME
 from src.utils import compute_epoch, convert_str_to_ts, convert_ts_to_str
 
 
 logger = logging.getLogger(__name__)
 
 
-class Strava(Base):
+class StravaManager:
     def __init__(self, client_id, client_secret, refresh_token, code, db_manager):
         self.client_id = client_id
         self.client_secret = client_secret
@@ -26,7 +26,7 @@ class Strava(Base):
 
     @property
     def name(self):
-        return "Strava"
+        return "StravaManager"
 
     @property
     def token(self):
@@ -97,13 +97,9 @@ class Strava(Base):
         return activity_data
 
     def _save_data(self, data):
-        logger.debug(
-            f"Saving {len(data)} records into {TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]}"
-        )
-        self.db_manager.save_data(data, DATA_TYPES.STRAVA)
-        logger.debug(
-            f"Successfully saved {len(data)} records into {TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]}"
-        )
+        logger.debug(f"Saving {len(data)} records into strava table")
+        self.db_manager.save_data(data)
+        logger.debug(f"Successfully saved {len(data)} records into strava table")
 
     def _get_last_record(self):
         """
@@ -111,9 +107,9 @@ class Strava(Base):
         If none present, return the start of time
         """
         logger.debug("_get_last_record()")
-        last_record = self.db_manager.get_last_record(DATA_TYPES.STRAVA)
+        last_record = self.db_manager.get_last_record(Strava)
         logger.debug(f"Last record: {last_record}")
-        return last_record[0]
+        return last_record
 
     @staticmethod
     def format_activity_data(record):
@@ -132,22 +128,21 @@ class Strava(Base):
         end_latitude = end_latlang[0]
         start_longitude = start_latlang[1]
         end_longitude = end_latlang[1]
-        fmt_record = {
-            "id": record.get("athlete", {}).get("id") + record.get("id"),
-            "distance": record.get("distance"),
-            "activity_type": record.get("type"),
-            "moving_time": record.get("moving_time"),
-            "elapsed_time": record.get("elapsed_time"),
-            "start_time": start_time,
-            "end_time": end_time,
-            "start_latitude": start_latitude,
-            "end_latitude": end_latitude,
-            "start_longitude": start_longitude,
-            "end_longitude": end_longitude,
-        }
-        return fmt_record
+        return Strava(
+            id=record.get("athlete", {}).get("id") + record.get("id"),
+            distance=record.get("distance"),
+            activity_type=record.get("type"),
+            moving_time=record.get("moving_time"),
+            elapsed_time=record.get("elapsed_time"),
+            start_time=start_time,
+            end_time=end_time,
+            start_latitude=start_latitude,
+            end_latitude=end_latitude,
+            start_longitude=start_longitude,
+            end_longitude=end_longitude,
+        )
 
-    def get_records(self, start_time, end_time):
+    def get_records_between_timestamp(self, start_time, end_time):
         """
         Get the strava data between the end/start times
         """
@@ -156,7 +151,9 @@ class Strava(Base):
 
     def _get_records(self, start_time, end_time):
         logger.debug(f"_get_records({start_time}, {end_time})")
-        return self.db_manager.get_records(DATA_TYPES.STRAVA, start_time, end_time)
+        return self.db_manager.get_records_between_timestamp(
+            Strava, start_time, end_time, time_column="start_time"
+        )
 
     def update_data(self, records_per_page=1, page=1):
         """
@@ -167,17 +164,12 @@ class Strava(Base):
         logger.debug("update_data()")
         last_record = self._get_last_record()
         data = self.get_activity_data(
-            after=compute_epoch(last_record),
+            after=compute_epoch(last_record.start_time),
             records_per_page=records_per_page,
             page=page,
         )
         if data:
-            formatted_data = [
-                tuple(list(self.format_activity_data(record).values()))
-                for record in data
-            ]
+            formatted_data = [self.format_activity_data(record) for record in data]
             self._save_data(formatted_data)
         else:
-            logger.debug(
-                f"No Strava data to save into {TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]}"
-            )
+            logger.debug("No data to save into strava table")

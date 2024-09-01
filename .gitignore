@@ -2,3 +2,4 @@
 libre.log
 */__pycache__/*
 */back-venv/
+.vscode

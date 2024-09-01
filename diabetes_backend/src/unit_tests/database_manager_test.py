@@ -1,152 +1,114 @@
-import sys, os, unittest
+import unittest
 from unittest import mock
-from datetime import datetime as dt
-from psycopg2 import sql
 
-# Mangle the paths in tests not in the code
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.database_manager import PostgresManager
-from src.constants import DATA_TYPES, DATETIME_FORMAT, DATABASE_TABLE, TABLE_SCHEMA
-
-EXAMPLE_DATA = [
-    [dt.strptime("12/31/2000 10:30:00 AM", DATETIME_FORMAT), 1],
-    [dt.strptime("12/31/2000 10:20:00 AM", DATETIME_FORMAT), 2],
-    [dt.strptime("12/31/2000 10:10:00 AM", DATETIME_FORMAT), 3],
-    [dt.strptime("12/31/2000 10:00:00 AM", DATETIME_FORMAT), 4],
-    [dt.strptime("12/31/2000 09:30:00 AM", DATETIME_FORMAT), 5],
-]
+from src.database.tables import Glucose, GlucoseExercise, Strava
+from src.database_manager import DatabaseManager
 
 
 class TestDatabaseManager(unittest.TestCase):
     def setUp(self):
         super().setUp()
-        self.conn_values = {
-            "user": "user",
-            "password": "password",
-            "host": "host",
-            "dbname": "dbname",
-        }
-        self.PostgresManager = PostgresManager(*self.conn_values.values())
 
-    @mock.patch("psycopg2.connect")
-    def test_get_last_record(self, mock_connect):
-        for call_count, (data_type, query_str) in enumerate(
-            zip(
-                [DATA_TYPES.LIBRE, DATA_TYPES.STRAVA],
-                (
-                    sql.SQL(
-                        "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
-                    ).format(
-                        table_columns=sql.SQL(", ").join(
-                            map(
-                                sql.Identifier,
-                                TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.LIBRE],
-                            )
-                        ),
-                        order_by=sql.Identifier(
-                            TABLE_SCHEMA.ORDER_BY[DATA_TYPES.LIBRE]
-                        ),
-                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.LIBRE]),
-                    ),
-                    sql.SQL(
-                        "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
-                    ).format(
-                        table_columns=sql.SQL(", ").join(
-                            map(
-                                sql.Identifier,
-                                TABLE_SCHEMA.SEARCH_COLUMNS[DATA_TYPES.STRAVA],
-                            )
-                        ),
-                        order_by=sql.Identifier(
-                            TABLE_SCHEMA.ORDER_BY[DATA_TYPES.STRAVA]
-                        ),
-                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]),
-                    ),
-                ),
-            ),
-            start=1,
-        ):
-            with self.subTest(data_type=data_type, query_str=query_str):
-                mock_con = (
-                    mock_connect.return_value
-                )  # result of psycopg2.connect(**connection_stuff)
-                mock_cur = (
-                    mock_con.cursor.return_value.__enter__.return_value
-                )  # result of con.cursor()
-                mock_cur.fetchone.return_value = EXAMPLE_DATA[
-                    0
-                ]  # return this when calling cur.fetchone()
+    def test_validate_data_type(self):
+        mock_engine = mock.MagicMock()
+        database_manager = DatabaseManager(mock_engine)
+        # Success
+        for model in (Glucose, Strava, GlucoseExercise):
+            with self.subTest(model=model):
+                database_manager._validate_data_type(model)
+        # Raise value Error
+        with self.assertRaises(ValueError) as ex:
+            database_manager._validate_data_type("model")
+        self.assertEqual(str(ex.exception), "Invalid data_type model")
 
-                result = self.PostgresManager.get_last_record(data_type)
+    @mock.patch("src.database_manager.Session")
+    def test_save_data(self, mock_session):
+        # Establish mocks
+        mock_engine = mock.MagicMock()
+        database_manager = DatabaseManager(mock_engine)
+        session = mock.MagicMock()
+        mock_session.return_value.__enter__.return_value = session
+        # Success
+        database_manager.save_data([])
+        session.add_all.assert_called()
+        session.add_all.assert_called_with([])
+        session.commit.assert_called()
+        session.commit.assert_called_with()
 
-                self.assertEqual(result, EXAMPLE_DATA[0])
+    @mock.patch("src.database_manager.Session")
+    def test_get_last_record(self, mock_session):
+        # Establish mocks
+        mock_engine = mock.MagicMock()
+        database_manager = DatabaseManager(mock_engine)
+        # Not testing defaults so just return a dummy value
+        database_manager._get_default_last_record = lambda x: 1
+        session_mock = mock.MagicMock()
+        execute_mock = mock.MagicMock()
+        execute_mock.scalar.return_value = []
+        session_mock.execute.return_value = execute_mock
+        mock_session.return_value.__enter__.return_value = session_mock
 
-                # Check the calls are as expected
-                mock_connect.assert_called_with(**self.conn_values)
-                mock_con.cursor.asset_called_with(data_type)
-                self.assertEqual(mock_cur.execute.call_count, call_count)
-                mock_cur.execute.assert_called_with(query_str)
+        # Result Not found
+        res = database_manager.get_last_record(Glucose)
+        session_mock.execute.assert_called_once()
+        execute_mock.scalar.assert_called_once()
+        self.assertEqual(res, 1)
 
-    @mock.patch("psycopg2.connect")
-    def test_save_data(self, mock_connect):
-        for call_count, (data_type, query_str, test_data) in enumerate(
-            zip(
-                [DATA_TYPES.LIBRE, DATA_TYPES.STRAVA],
-                [
-                    sql.SQL(
-                        """INSERT INTO {table} ({table_columns}) VALUES ({entries})"""
-                    ).format(
-                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.LIBRE]),
-                        table_columns=sql.SQL(", ").join(
-                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[DATA_TYPES.LIBRE])
-                        ),
-                        entries=sql.SQL(", ").join(
-                            sql.Placeholder()
-                            * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.LIBRE])
-                        ),
-                    ),
-                    sql.SQL(
-                        """INSERT INTO {table} ({table_columns}) VALUES ({entries})"""
-                    ).format(
-                        table=sql.Identifier(TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]),
-                        table_columns=sql.SQL(", ").join(
-                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[DATA_TYPES.STRAVA])
-                        ),
-                        entries=sql.SQL(", ").join(
-                            sql.Placeholder()
-                            * len(TABLE_SCHEMA.COLUMNS[DATA_TYPES.STRAVA])
-                        ),
-                    ),
-                ],
-                [
-                    [
-                        (1, 4.5, dt(1990, 7, 11, 19, 45, 55)),
-                        (2, 4.5, dt(1990, 7, 11, 19, 45, 55)),
-                    ],
-                    [
-                        (1, 1.2, "RUN", 10, 145, "ts", "ts2", 1.2, 1.3, 1.4, 1.5),
-                        (2, 1.2, "RUN2", 10, 145, "ts", "ts2", 1.2, 1.3, 1.4, 1.5),
-                    ],
-                ],
-            ),
-            start=1,
-        ):
-            with self.subTest(
-                data_type=data_type, query_str=query_str, test_data=test_data
-            ):
+        # Result Found
+        # Do not care on the actual result type just that a result was found
+        execute_mock.scalar.return_value = 1
+        session_mock.execute.return_value = execute_mock
+        mock_session.return_value.__enter__.return_value = session_mock
 
-                mock_con = (
-                    mock_connect.return_value
-                )  # result of psycopg2.connect(**connection_stuff)
-                mock_cur = (
-                    mock_con.cursor.return_value.__enter__.return_value
-                )  # result of con.cursor()
+        res = database_manager.get_last_record(Glucose)
+        self.assertEqual(session_mock.execute.call_count, 2)
+        self.assertEqual(execute_mock.scalar.call_count, 2)
+        self.assertEqual(res, 1)
 
-                self.PostgresManager.save_data(test_data, data_type)
+    @mock.patch("src.database_manager.Session")
+    def test_get_records_between_timestamp(self, mock_session):
+        # Establish mocks
+        mock_engine = mock.MagicMock()
+        database_manager = DatabaseManager(mock_engine)
 
-                # Check the calls are as expected
-                mock_connect.assert_called_with(**self.conn_values)
-                mock_con.cursor.asset_called_with()
-                self.assertEqual(mock_cur.executemany.call_count, call_count)
-                mock_cur.executemany.assert_called_with(query_str, test_data)
+        # Result Not found
+        session_mock = mock.MagicMock()
+        session_mock.execute.return_value = []
+        mock_session.return_value.__enter__.return_value = session_mock
+        res = database_manager.get_records_between_timestamp(
+            Glucose, "start", "end", "time_column"
+        )
+        session_mock.execute.assert_called_once()
+        self.assertEqual(res, [])
+
+        #  Result Found
+        # Do not care on the actual result type
+        session_mock.execute.return_value = [(1,), (2,)]
+        mock_session.return_value.__enter__.return_value = session_mock
+        res = database_manager.get_records_between_timestamp(
+            Glucose, "start", "end", "time_column"
+        )
+        self.assertEqual(session_mock.execute.call_count, 2)
+        self.assertEqual(res, [1, 2])
+
+    @mock.patch("src.database_manager.Session")
+    def test_get_filtered_by_id_records(self, mock_session):
+        # Establish mocks
+        mock_engine = mock.MagicMock()
+        database_manager = DatabaseManager(mock_engine)
+
+        # Result Not found
+        session_mock = mock.MagicMock()
+        session_mock.execute.return_value = []
+        mock_session.return_value.__enter__.return_value = session_mock
+        res = database_manager.get_filtered_by_id_records(Glucose, 2)
+        session_mock.execute.assert_called_once()
+        self.assertEqual(res, [])
+
+        #  Result Found
+        # Do not care on the actual result type
+        session_mock.execute.return_value = [(1,), (2,)]
+        mock_session.return_value.__enter__.return_value = session_mock
+        res = database_manager.get_filtered_by_id_records(Glucose, 2)
+        self.assertEqual(session_mock.execute.call_count, 2)
+        self.assertEqual(res, [1, 2])

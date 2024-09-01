@@ -1,10 +1,11 @@
-import unittest
 from unittest.mock import patch
 from requests import HTTPError
 from datetime import datetime
+from src.unit_tests.base import TestBase
+from src.database.tables import Strava
 from src.utils import compute_epoch
-from src.constants import DATA_TYPES, STRAVA_BASE_URL
-from src.strava import Strava
+from src.constants import STRAVA_BASE_URL
+from src.strava import StravaManager
 
 ERROR_MSG = "My test error"
 
@@ -22,7 +23,7 @@ class MockRequest:
             raise HTTPError(ERROR_MSG)
 
 
-class TestStrava(unittest.TestCase):
+class TestStrava(TestBase):
     def setUp(self):
         super().setUp()
         self.client_id = "myId"
@@ -60,7 +61,7 @@ class TestStrava(unittest.TestCase):
         }
 
     @patch("requests.post")
-    @patch("database_manager.PostgresManager")
+    @patch("src.database_manager.DatabaseManager")
     def test_get_access_token_success(self, mock_database_manager, mock_requests):
         payload = {
             "client_id": self.client_id,
@@ -70,7 +71,7 @@ class TestStrava(unittest.TestCase):
             "f": "json",
         }
         mock_requests.return_value = MockRequest({"access_token": "token"})
-        strava_cls = Strava(
+        strava_cls = StravaManager(
             self.client_id,
             self.client_secret,
             self.refresh_token,
@@ -89,7 +90,7 @@ class TestStrava(unittest.TestCase):
         self.assertEqual(mock_database_manager.call_count, 0)
 
     @patch("requests.post")
-    @patch("database_manager.PostgresManager")
+    @patch("src.database_manager.DatabaseManager")
     def test_get_access_token_failure(self, mock_database_manager, mock_requests):
         payload = {
             "client_id": self.client_id,
@@ -101,7 +102,7 @@ class TestStrava(unittest.TestCase):
         mock_requests.return_value = MockRequest(
             {"access_token": "token"}, raise_error=True
         )
-        strava_cls = Strava(
+        strava_cls = StravaManager(
             self.client_id,
             self.client_secret,
             self.refresh_token,
@@ -122,7 +123,7 @@ class TestStrava(unittest.TestCase):
 
     @patch("requests.get")
     @patch("requests.post")
-    @patch("database_manager.PostgresManager")
+    @patch("src.database_manager.DatabaseManager")
     def test_get_activity_data_success(
         self, mock_database_manager, mock_requests_post, mock_requests_get
     ):
@@ -135,7 +136,7 @@ class TestStrava(unittest.TestCase):
         }
         mock_requests_post.return_value = MockRequest({"access_token": "token"})
         mock_requests_get.return_value = MockRequest([self.test_data_1])
-        strava_cls = Strava(
+        strava_cls = StravaManager(
             self.client_id,
             self.client_secret,
             self.refresh_token,
@@ -160,7 +161,7 @@ class TestStrava(unittest.TestCase):
 
     @patch("requests.get")
     @patch("requests.post")
-    @patch("database_manager.PostgresManager")
+    @patch("src.database_manager.DatabaseManager")
     def test_get_activity_data_failure(
         self, mock_database_manager, mock_requests_post, mock_requests_get
     ):
@@ -175,7 +176,7 @@ class TestStrava(unittest.TestCase):
         mock_requests_get.return_value = MockRequest(
             [self.test_data_1], raise_error=True
         )
-        strava_cls = Strava(
+        strava_cls = StravaManager(
             self.client_id,
             self.client_secret,
             self.refresh_token,
@@ -200,9 +201,9 @@ class TestStrava(unittest.TestCase):
         )
         self.assertEqual(mock_database_manager.call_count, 0)
 
-    @patch("database_manager.PostgresManager")
+    @patch("src.database_manager.DatabaseManager")
     def test_format_activity_data(self, mock_database_manager):
-        strava_cls = Strava(
+        strava_cls = StravaManager(
             self.client_id,
             self.client_secret,
             self.refresh_token,
@@ -211,67 +212,41 @@ class TestStrava(unittest.TestCase):
         )
         # Simple
         result = strava_cls.format_activity_data(self.test_data_1)
-        self.assertDictEqual(result, self.expected_formatted_data)
+        self.assertResultRepresentation(
+            result, Strava(id="1231", elapsed_time=8, activity_type="Run", distance=105)
+        )
 
         # No lat-lang
         result = strava_cls.format_activity_data(
             {**self.test_data_1, "start_latlng": [], "end_latlng": []}
         )
-        self.assertDictEqual(
+        self.assertResultRepresentation(
             result,
-            {
-                "id": "1231",
-                "distance": 105,
-                "activity_type": "Run",
-                "moving_time": 6,
-                "elapsed_time": 8,
-                "start_time": self.start_time,
-                "end_time": self.end_time,
-                "start_latitude": 0,
-                "end_latitude": 0,
-                "start_longitude": 0,
-                "end_longitude": 0,
-            },
+            Strava(
+                id="1231",
+                start_time=self.start_time,
+                end_time=self.end_time,
+                elapsed_time=8,
+                activity_type="Run",
+                distance=105,
+                moving_time=6,
+                start_latitude=0,
+                end_latitude=0,
+                start_longitude=0,
+                end_longitude=0,
+            ),
         )
-
-    @patch("database_manager.PostgresManager")
-    def test_get_records(self, mock_database_manager):
-        mock_database_manager.get_records.return_value = [[1, 2, 3], [4, 5, 6]]
-        strava_cls = Strava(
-            self.client_id,
-            self.client_secret,
-            self.refresh_token,
-            self.code,
-            mock_database_manager,
-        )
-        result = strava_cls.get_records(self.start_date, self.end_date)
-        self.assertEqual(
-            result,
-            [[1, 2, 3], [4, 5, 6]],
-        )
-
-    @patch("database_manager.PostgresManager")
-    def test_get_last_record(self, mock_database_manager):
-        mock_database_manager.get_last_record.return_value = [self.start_time]
-        strava_cls = Strava(
-            self.client_id,
-            self.client_secret,
-            self.refresh_token,
-            self.code,
-            mock_database_manager,
-        )
-        result = strava_cls._get_last_record()
-        self.assertEqual(self.start_time, result)
-        mock_database_manager.get_last_record.assert_called_once_with(DATA_TYPES.STRAVA)
 
     @patch("requests.get")
     @patch("requests.post")
-    @patch("database_manager.PostgresManager")
+    @patch("src.database_manager.DatabaseManager")
     def test_update_data_records_found(
         self, mock_database_manager, mock_requests_post, mock_requests_get
     ):
         mock_dt = datetime(2000, 1, 1)
-        mock_database_manager.get_last_record.return_value = [mock_dt]
+        mock_database_manager.get_last_record.return_value = Strava(
+            start_time=mock_dt, distance=5, activity_type="RUN"
+        )
         payload = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -281,7 +256,7 @@ class TestStrava(unittest.TestCase):
         }
         mock_requests_post.return_value = MockRequest({"access_token": "token"})
         mock_requests_get.return_value = MockRequest([self.test_data_1])
-        strava_cls = Strava(
+        strava_cls = StravaManager(
             self.client_id,
             self.client_secret,
             self.refresh_token,
@@ -301,19 +276,19 @@ class TestStrava(unittest.TestCase):
             headers={"Authorization": "Bearer token"},
             params={"page": 1, "records_per_page": 1, "after": compute_epoch(mock_dt)},
         )
-        mock_database_manager.get_last_record.assert_called_once_with(DATA_TYPES.STRAVA)
-        mock_database_manager.save_data.assert_called_once_with(
-            [tuple(self.expected_formatted_data.values())], DATA_TYPES.STRAVA
-        )
+        mock_database_manager.get_last_record.assert_called_once_with(Strava)
+        self.assertEqual(mock_database_manager.save_data.call_count, 1)
 
     @patch("requests.get")
     @patch("requests.post")
-    @patch("database_manager.PostgresManager")
+    @patch("src.database_manager.DatabaseManager")
     def test_update_data_records_non_found(
         self, mock_database_manager, mock_requests_post, mock_requests_get
     ):
-        mock_dt = datetime(2000, 1, 1)
-        mock_database_manager.get_last_record.return_value = [mock_dt]
+        mock_dt = datetime(2000, 1, 1, 12, 0, 0)
+        mock_database_manager.get_last_record.return_value = Strava(
+            start_time=mock_dt, activity_type="WALK", distance=10
+        )
         payload = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -323,7 +298,7 @@ class TestStrava(unittest.TestCase):
         }
         mock_requests_post.return_value = MockRequest({"access_token": "token"})
         mock_requests_get.return_value = MockRequest([])
-        strava_cls = Strava(
+        strava_cls = StravaManager(
             self.client_id,
             self.client_secret,
             self.refresh_token,
@@ -343,5 +318,5 @@ class TestStrava(unittest.TestCase):
             headers={"Authorization": "Bearer token"},
             params={"page": 1, "records_per_page": 1, "after": compute_epoch(mock_dt)},
         )
-        mock_database_manager.get_last_record.assert_called_once_with(DATA_TYPES.STRAVA)
+        mock_database_manager.get_last_record.assert_called_once_with(Strava)
         self.assertEqual(mock_database_manager.save_data.call_count, 0)

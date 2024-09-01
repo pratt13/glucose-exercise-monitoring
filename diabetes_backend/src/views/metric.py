@@ -31,9 +31,27 @@ class Metric(BaseView):
         default_end_time = convert_ts_to_str(dt.now(), DATABASE_DATETIME)
         start_time = request.args.get("start", default_start_time)
         end_time = request.args.get("end", default_end_time)
+        additional_request_args = create_additional_kwargs(
+            request.args,
+            list(self.schema.__dict__.get("declared_fields", {}).keys()),
+            excluded_keys=("start", "end"),
+        )
         logger.debug(f"Getting average glucose level from {start_time} to {end_time}")
-        data = self.model.get_records(start_time, end_time)
-        res = self.metric(data)
+        data = self.model.get_records_between_timestamp(start_time, end_time)
+        res = self.metric(data, **additional_request_args)
         logger.debug(f"Found {self.metric} in time range {start_time} - {end_time}")
         fmt_result = str(res) if isinstance(res, float) else res
         return fmt_result, 200
+
+
+# TODO: Move to utils and test
+def create_additional_kwargs(value_dict, keys, excluded_keys=None):
+    res = {}
+    if excluded_keys is None:
+        excluded_keys = []
+    for key in keys:
+        value = value_dict.get(key)
+        if value and key not in excluded_keys:
+            res[key] = value
+    logger.debug(f"Adding additional kwargs {res}")
+    return res

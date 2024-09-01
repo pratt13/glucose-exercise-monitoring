@@ -13,5 +13,6 @@ ENV FLASK_APP=app.py
 CMD ["python", "-m", "flask", "run", "--host", "0.0.0.0"]
 
 FROM base AS backend_unit
-WORKDIR /
-CMD ["python", "-m", "unittest", "discover", "-s", "./src/unit_tests/", "-p", "'*_test.py'"]
+WORKDIR /src
+RUN pip install -r requirements-dev.txt
+CMD ["coverage", "run", "-m", "unittest", "discover", "-s", "/src/unit_tests/", "-p", "'*_test.py'", "&&", "coverage", "run", "-m"]

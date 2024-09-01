@@ -1,155 +1,96 @@
-import psycopg2
-from psycopg2 import sql
 import datetime
 import logging
-from src.constants import DATA_TYPES, TABLE_SCHEMA
+from sqlalchemy.orm import Session
+from sqlalchemy import select, literal_column
+from src.database.tables import Glucose, Strava, GlucoseExercise
 
 logger = logging.getLogger(__name__)
 
 
-class PostgresManager:
-    def __init__(self, user, password, host, db):
-        self.user = user
-        self.password = password
-        self.host = host
-        self.db = db
+class DatabaseManager:
+    def __init__(self, engine):
+        self.engine = engine
 
     @property
-    def conn_params(self):
-        return {
-            "host": self.host,
-            "dbname": self.db,
-            "user": self.user,
-            "password": self.password,
-        }
+    def name(self):
+        return "DatabaseManager"
 
-    def save_data(self, data, data_type):
+    def save_data(self, data):
         """
         Save the data to the associated table
         """
         logging.debug("save_data()")
-        self._validate_data_type(data_type)
+        with Session(self.engine) as session:
+            session.add_all(data)
+            session.commit()
 
-        logging.debug(f"Trying to save data into {TABLE_SCHEMA.NAME[data_type]}")
-        conn = psycopg2.connect(**self.conn_params)
-        with conn:
-            with conn.cursor() as curs:
-                query = sql.SQL(
-                    """INSERT INTO {table} ({table_columns}) VALUES ({entries})"""
-                ).format(
-                    table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
-                    table_columns=sql.SQL(", ").join(
-                        map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
-                    ),
-                    entries=sql.SQL(", ").join(
-                        sql.Placeholder() * len(TABLE_SCHEMA.COLUMNS[data_type])
-                    ),
-                )
-                curs.executemany(
-                    query,
-                    data,
-                )
+    def _validate_data_type(self, table):
+        if table not in (Glucose, Strava, GlucoseExercise):
+            raise ValueError(f"Invalid data_type {table}")
 
-        # leaving contexts doesn't close the connection
-        conn.close()
+    def _get_default_last_record(self, table):
+        self._validate_data_type(table)
+        if table == Glucose:
+            rec = Glucose(
+                id=0,
+                timestamp=datetime.datetime(1970, 7, 11, 19, 45, 55).astimezone(
+                    datetime.timezone.utc
+                ),
+                glucose=5.0,
+            )
+            logger.debug(f"Returning default glucose record: {rec}")
+            return rec
+        elif table == Strava:
+            rec = Strava(id=0, start_time=datetime.datetime(1970, 7, 11, 19, 45, 55))
+            logger.debug(f"Returning default strava record: {rec}")
+            return rec
+        elif table == GlucoseExercise:
+            # No record strava and glucose id are 0
+            rec = GlucoseExercise(
+                id=0,
+                timestamp=datetime.datetime(1970, 7, 11, 19, 45, 55).astimezone(
+                    datetime.timezone.utc
+                ),
+                strava_id=0,
+                glucose_id=0,
+            )
+            logger.debug(f"Returning default GlucoseExercise record: {rec}")
+            return rec
 
-    def _validate_data_type(self, data_type):
-        if data_type not in (
-            DATA_TYPES.LIBRE,
-            DATA_TYPES.STRAVA,
-            DATA_TYPES.STRAVA_LIBRE,
-        ):
-            raise ValueError(f"Invalid data_type {data_type}")
+        raise ValueError(
+            f"Cannot get default last record as {table} is not a valid table"
+        )
 
-    def _get_default_last_record(self, data_type):
-        self._validate_data_type(data_type)
-        if data_type == DATA_TYPES.LIBRE:
-            return (datetime.datetime(1970, 7, 11, 19, 45, 55), 0)
-        elif data_type == DATA_TYPES.STRAVA:
-            return [datetime.datetime(1970, 7, 11, 19, 45, 55)]
-        elif data_type == DATA_TYPES.STRAVA_LIBRE:
-            return (datetime.datetime(1970, 7, 11, 19, 45, 55), 0, 0)
-
-    def get_last_record(self, data_type):
+    def get_last_record(self, table):
         """Fetch the last record in the table"""
-        self._validate_data_type(data_type)
-        logger.info(f"Getting last record of {TABLE_SCHEMA.NAME[data_type]}")
-        conn = psycopg2.connect(**self.conn_params)
+        logger.info(f"Getting last record of {table}")
+        self._validate_data_type(table)
+        stmt = select(table).order_by(table.id.desc()).limit(1)
+        with Session(self.engine) as session:
+            rec = session.execute(stmt).scalar()
+            res = rec or self._get_default_last_record(table)
+        return res
 
-        with conn:
-            with conn.cursor() as curs:
-                curs.execute(
-                    sql.SQL(
-                        "SELECT {table_columns} FROM {table} ORDER BY {order_by} DESC LIMIT 1"
-                    ).format(
-                        table_columns=sql.SQL(", ").join(
-                            map(sql.Identifier, TABLE_SCHEMA.SEARCH_COLUMNS[data_type])
-                        ),
-                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[data_type]),
-                        table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
-                    )
-                )
-                res = curs.fetchone()
-
-        # leaving contexts doesn't close the connection
-        conn.close()
-
-        return res or self._get_default_last_record(data_type)
-
-    def get_records(self, data_type, start_time, end_time):
+    def get_records_between_timestamp(self, table, start, end, time_column="timestamp"):
         """Fetch the records in the table for the given date range"""
-        logging.debug(f"get_last_record({data_type})")
-        self._validate_data_type(data_type)
-        logger.debug(f"Retrieving data from {TABLE_SCHEMA.NAME[data_type]}")
-        conn = psycopg2.connect(**self.conn_params)
-
-        with conn:
-            with conn.cursor() as curs:
-                curs.execute(
-                    sql.SQL(
-                        "SELECT {table_columns} FROM {table} WHERE {time_field} <= {end_time} AND {time_field} >= {start_time} ORDER BY {order_by} "
-                    ).format(
-                        table_columns=sql.SQL(", ").join(
-                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
-                        ),
-                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[data_type]),
-                        table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
-                        time_field=sql.Identifier(TABLE_SCHEMA.TIME_FIELD[data_type]),
-                        end_time=sql.Literal(end_time),
-                        start_time=sql.Literal(start_time),
-                    )
-                )
-                res = curs.fetchall()
-
-        # leaving contexts doesn't close the connection
-        conn.close()
-
+        logging.debug(f"get_records_between_timestamp({start},{end},{time_column})")
+        self._validate_data_type(table)
+        stmt = select(table).where(
+            (literal_column(time_column) <= end)
+            & (start <= literal_column(time_column))
+        )
+        with Session(self.engine) as session:
+            recs = session.execute(stmt)
+            res = [rec[0] for rec in recs]
         return res or []
 
-    def get_filtered_by_id_records(self, data_type, id):
+    def get_filtered_by_id_records(self, table, id):
         """Fetch the records greater than the given id"""
-        logging.debug(f"get_filtered_by_id_records({data_type})")
-        self._validate_data_type(data_type)
-        logger.debug(f"Retrieving data from {TABLE_SCHEMA.NAME[data_type]}")
-        conn = psycopg2.connect(**self.conn_params)
-        with conn:
-            with conn.cursor() as curs:
-                curs.execute(
-                    sql.SQL(
-                        "SELECT {table_columns} FROM {table} WHERE {id_field} > {id_value} ORDER BY {order_by} "
-                    ).format(
-                        table_columns=sql.SQL(", ").join(
-                            map(sql.Identifier, TABLE_SCHEMA.COLUMNS[data_type])
-                        ),
-                        order_by=sql.Identifier(TABLE_SCHEMA.ORDER_BY[data_type]),
-                        table=sql.Identifier(TABLE_SCHEMA.NAME[data_type]),
-                        id_field=sql.Identifier(TABLE_SCHEMA.INDEX_FIELD[data_type]),
-                        id_value=sql.Literal(id),
-                    )
-                )
-                res = curs.fetchall()
-
-        # leaving contexts doesn't close the connection
-        conn.close()
-
+        logging.debug(f"get_filtered_by_id_records({table}, {id})")
+        self._validate_data_type(table)
+        logger.debug(f"Retrieving data from {table}")
+        stmt = select(table).where(table.id > id).order_by(table.id.asc())
+        with Session(self.engine) as session:
+            recs = session.execute(stmt)
+            res = [rec[0] for rec in recs]
         return res or []
