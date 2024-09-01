@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 
 
+from src.base import Base
 from src.constants import DATA_TYPES, STRAVA_BASE_URL, STRAVA_DATETIME, TABLE_SCHEMA
 from src.utils import compute_epoch, convert_str_to_ts, convert_ts_to_str
 
@@ -10,7 +11,7 @@ from src.utils import compute_epoch, convert_str_to_ts, convert_ts_to_str
 logger = logging.getLogger(__name__)
 
 
-class Strava:
+class Strava(Base):
     def __init__(self, client_id, client_secret, refresh_token, code, db_manager):
         self.client_id = client_id
         self.client_secret = client_secret

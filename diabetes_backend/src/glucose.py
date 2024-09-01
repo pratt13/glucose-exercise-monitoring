@@ -2,13 +2,14 @@ import requests
 import logging
 from datetime import datetime
 
+from src.base import Base
 from src.constants import BASE_URL, DATA_TYPES, HEADERS, DATETIME_FORMAT
 
 
 logger = logging.getLogger(__name__)
 
 
-class Glucose:
+class Glucose(Base):
     """
     Simple class to poll data from the LibreLinkUpApp
     """
