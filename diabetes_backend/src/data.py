@@ -1,6 +1,8 @@
+from datetime import timedelta
 import logging
 
-from src.constants import DATA_TYPES
+from src.utils import convert_str_to_ts, convert_ts_to_str
+from src.constants import DATA_TYPES, DATETIME_FORMAT, STRAVA_DATETIME
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +19,9 @@ class Data:
     def combine_data(self):
         """
         Retrieve the last record in the DB relating to this data
-        Get all strava data after that date
+        Get all strava data after that date.
+        (We do not get all missing strava data as there may not be any glucose data,
+        so we dont wnat to needlessely check it again.)
         Retrieve all the glucose data within those time ranges
         """
         logger.debug("***********************************************")
@@ -38,6 +42,8 @@ class Data:
         for unchecked_strava_record in unchecked_strava_records:
             start_time = unchecked_strava_record[5]
             end_time = unchecked_strava_record[6]
+            activity_type = unchecked_strava_record[2]
+            current_strava_id = unchecked_strava_record[0]
             libre_records = self.db_manager.get_records(
                 DATA_TYPES.LIBRE, start_time, end_time
             )
@@ -45,10 +51,29 @@ class Data:
                 f"Found {len(libre_records)} to add between {start_time} and {end_time}"
             )
             for libre_record in libre_records:
+                current_timestamp = libre_record[2]
+                current_glucose = libre_record[1]
+                current_libre_id = libre_record[0]
+                timestamp_since_start = (
+                    convert_str_to_ts(current_timestamp, DATETIME_FORMAT)
+                    - convert_str_to_ts(start_time, "%Y-%m-%dT%H:%M:%SZ")
+                ).total_seconds()
+
                 new_records.append(
-                    (new_entry_id, last_strava_libre_record, libre_record)
+                    (
+                        new_entry_id,
+                        current_strava_id,
+                        current_libre_id,
+                        current_glucose,
+                        current_timestamp,
+                        activity_type,
+                        timestamp_since_start,
+                    )
                 )
                 # Increment index
                 new_entry_id += 1
         logger.debug(f"new_records: {new_records}")
-        self.db_manager.save_data(new_records, DATA_TYPES.STRAVA_LIBRE)
+        if new_records:
+            self.db_manager.save_data(new_records, DATA_TYPES.STRAVA_LIBRE)
+        else:
+            logger.debug("no records to add to DATA_TYPES.STRAVA_LIBRE")

@@ -63,6 +63,8 @@ class TABLE_SCHEMA:
             "libre_id",
             "glucose",
             "timestamp",
+            "activity_type",
+            "seconds_since_start",
         ],
     }
     SEARCH_COLUMNS = {

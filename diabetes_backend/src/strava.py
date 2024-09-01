@@ -1,4 +1,4 @@
-from datetiem import datetime
+from datetime import timedelta
 import requests
 import logging
 
@@ -113,10 +113,10 @@ class Strava:
     def format_activity_data(record):
         # TOOD: VAlidate schema
         start_time = record.get("start_date")
-        # Compute
+        # Compute - use moving time not just elapsed time in case of breaks/splits
         end_time = convert_ts_to_str(
-            convert_str_to_ts(record.get("start_date"), STRAVA_DATETIME)
-            + datetime.timedelta(seconds=record.get("moving_time", 0)),
+            convert_str_to_ts(record.get("start_date"), "%Y-%m-%dT%H:%M:%SZ")
+            + timedelta(seconds=record.get("moving_time", 0)),
             STRAVA_DATETIME,
         )
         default_lat_lang = [0, 0]
