@@ -97,3 +97,36 @@ def aggregate_strava_data(data, distance_index, activity_index):
         "total_distance": df["sum"].to_list(),
         "number_activities": df["count"].to_list(),
     }
+
+
+def aggregate_strava_libre_glucose_data(
+    data, time_index, glucose_index, interval_min=10
+):
+    """
+    Bucket the data into intervals, default 10minute
+    """
+    timestamps = list(map(lambda x: x[time_index], data))
+    glucose_list = list(map(lambda x: float(x[glucose_index]), data))
+
+    df = pd.DataFrame({"time": timestamps, "raw": glucose_list})
+    t_intervals = [
+        t
+        for t in range(
+            min(timestamps), max(timestamps) + interval_min * 60, interval_min * 60
+        )
+    ]
+    df = df.groupby(pd.cut(df["time"], t_intervals))["raw"].agg(
+        ["mean", "median", "var", "count", "std", "max", "min"]
+    )
+    # Crude hack for NaN
+    df = df.fillna(0)
+    return {
+        "intervals": t_intervals,
+        "mean": df["mean"].to_list(),
+        "count": df["count"].to_list(),
+        "median": df["median"].to_list(),
+        "var": df["var"].to_list(),
+        "std": df["std"].to_list(),
+        "max": df["max"].to_list(),
+        "min": df["min"].to_list(),
+    }
