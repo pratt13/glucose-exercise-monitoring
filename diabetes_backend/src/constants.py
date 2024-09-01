@@ -63,6 +63,8 @@ class TABLE_SCHEMA:
             "libre_id",
             "glucose",
             "timestamp",
+            "activity_start",
+            "activity_end",
             "activity_type",
             "seconds_since_start",
         ],
