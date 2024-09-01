@@ -30,6 +30,7 @@ from src.strava import Strava
 from src.utils import (
     aggregate_glucose_data,
     aggregate_strava_data,
+    aggregate_strava_libre_glucose_data,
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
 )
@@ -123,16 +124,18 @@ StravaSummary = Metric.as_view(
     strava,
     lambda x: aggregate_strava_data(x, 1, 2),
 )
-StravaLibreRaw = RawData.as_view(
-    "strava-libre-raw",
+StravaLibreSummary = Metric.as_view(
+    "strava-libre-summary",
     TimeIntervalSchema(),
     data,
+    lambda x: aggregate_strava_libre_glucose_data(x, 8, 3),
 )
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/strava/", view_func=StravaRecords)
 app.add_url_rule("/strava-libre/", view_func=StravaLibreRecords)
 app.add_url_rule("/glucose/aggregate/15min", view_func=Aggregate15min)
 app.add_url_rule("/strava/summary", view_func=StravaSummary)
+app.add_url_rule("/strava-libre/summary", view_func=StravaLibreSummary)
 
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents

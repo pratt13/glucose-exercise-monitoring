@@ -49,6 +49,8 @@ class Data(Base):
         (We do not get all missing strava data as there may not be any glucose data,
         so we dont want to needlessely check it again.)
         Retrieve all the glucose data within those time ranges
+
+        # TODO: Need to omit overllaping exercises (run/walk that are less than 60 minutes apart)
         """
         logger.info("*" * 50 + "\n" + " " * 20 + "combine_data()" + " " * 20 + "*" * 50)
         new_records = []
@@ -79,6 +81,9 @@ class Data(Base):
             )
             for libre_record in libre_records:
                 current_libre_id, current_glucose, current_timestamp = libre_record
+                # ' Would be negative if activity_start_time instead of start time
+                # but we just presume for now offset is always 60mins. More robust to
+                # do -negatives from the start time though.'
                 timestamp_since_start = (current_timestamp - start_time).total_seconds()
                 new_records.append(
                     (
