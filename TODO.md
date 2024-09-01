@@ -24,3 +24,4 @@
 - [ ] New average endpoint
 - [ ] New % in target endpoint
 - [ ] New % of lows in hour intervals (24 column bar chart)
+- [ ] Return dict instead of tuples from db.
