@@ -1,10 +1,10 @@
-import os
 import requests
 import logging
+from datetime import timedelta
 
 
-from src.constants import DATA_TYPES, STRAVA_BASE_URL
-from src.utils import compute_epoch
+from src.constants import DATA_TYPES, STRAVA_BASE_URL, STRAVA_DATETIME, TABLE_SCHEMA
+from src.utils import compute_epoch, convert_str_to_ts, convert_ts_to_str
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,7 @@ class Strava:
         Get Strava Access token
         """
         logger.debug("get_access_token()")
+        logger.debug(self.refresh_token)
         payload = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -69,8 +70,9 @@ class Strava:
         res = requests.post(
             f"{STRAVA_BASE_URL}/oauth/token", data=payload, verify=False
         )
-        res.raise_for_status()
         res_json = res.json()
+        logger.debug(res_json)
+        res.raise_for_status()
         # Get access token and update refresh token
         access_token = res_json.get("access_token")
         self.refresh_token = res_json.get("refresh_token")
@@ -94,9 +96,13 @@ class Strava:
         return activity_data
 
     def _save_data(self, data):
-        logger.debug("_save_data()")
-        logger.debug(f"Saving {data}")
+        logger.debug(
+            f"Saving {len(data)} records into {TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]}"
+        )
         self.db_manager.save_data(data, DATA_TYPES.STRAVA)
+        logger.debug(
+            f"Successfully saved {len(data)} records into {TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]}"
+        )
 
     def _get_last_record(self):
         """
@@ -104,16 +110,27 @@ class Strava:
         If none present, return the start of time
         """
         logger.debug("_get_last_record()")
-        last_record = self.db_manager.get_last_record(DATA_TYPES.STRAVA)[0]
+        last_record = self.db_manager.get_last_record(DATA_TYPES.STRAVA)
         logger.debug(f"Last record: {last_record}")
-        return last_record
+        return last_record[0]
 
     @staticmethod
     def format_activity_data(record):
         # TOOD: VAlidate schema
         start_time = record.get("start_date")
-        # Compute
-        end_time = record.get("start_date")
+        # Compute - use elapsed time not just moving time in case of breaks/splits
+        end_time = convert_ts_to_str(
+            convert_str_to_ts(record.get("start_date"), "%Y-%m-%dT%H:%M:%SZ")
+            + timedelta(seconds=record.get("elapsed_time", 0)),
+            STRAVA_DATETIME,
+        )
+        default_lat_lang = [0, 0]
+        start_latlang = record.get("start_latlng") or default_lat_lang
+        end_latlang = record.get("end_latlng") or default_lat_lang
+        start_latitude = start_latlang[0]
+        end_latitude = end_latlang[0]
+        start_longitude = start_latlang[1]
+        end_longitude = end_latlang[1]
         fmt_record = {
             "id": record.get("athlete", {}).get("id") + record.get("id"),
             "distance": record.get("distance"),
@@ -122,12 +139,11 @@ class Strava:
             "elapsed_time": record.get("elapsed_time"),
             "start_time": start_time,
             "end_time": end_time,
-            "start_latitude": record.get("start_latlng")[0],
-            "end_latitude": record.get("end_latlng")[0],
-            "start_longitude": record.get("start_latlng")[1],
-            "end_longitude": record.get("end_latlng")[1],
+            "start_latitude": start_latitude,
+            "end_latitude": end_latitude,
+            "start_longitude": start_longitude,
+            "end_longitude": end_longitude,
         }
-        logger.debug(f"Formatted Record: {fmt_record}")
         return fmt_record
 
     def get_records(self, start_time, end_time):
@@ -154,7 +170,13 @@ class Strava:
             records_per_page=records_per_page,
             page=page,
         )
-        formatted_data = [
-            tuple(list(self.format_activity_data(record).values())) for record in data
-        ]
-        self._save_data(formatted_data)
+        if data:
+            formatted_data = [
+                tuple(list(self.format_activity_data(record).values()))
+                for record in data
+            ]
+            self._save_data(formatted_data)
+        else:
+            logger.debug(
+                f"No Strava data to save into {TABLE_SCHEMA.NAME[DATA_TYPES.STRAVA]}"
+            )
