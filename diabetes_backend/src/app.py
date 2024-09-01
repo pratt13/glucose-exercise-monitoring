@@ -106,22 +106,31 @@ StravaRecords = RawData.as_view(
     TimeIntervalSchema(),
     strava,
 )
+StravaLibreRecords = RawData.as_view(
+    "strava-libre",
+    TimeIntervalSchema(),
+    data,
+)
 Aggregate15min = Metric.as_view(
     "test",
     TimeIntervalSchema(),
     libre,
     lambda x: aggregate_glucose_data(x, 2, 1, interval="15min"),
 )
-
 StravaSummary = Metric.as_view(
     "strava-summary",
     TimeIntervalSchema(),
     strava,
     lambda x: aggregate_strava_data(x, 1, 2),
 )
-aggregate_strava_data
+StravaLibreRaw = RawData.as_view(
+    "strava-libre-raw",
+    TimeIntervalSchema(),
+    data,
+)
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/strava/", view_func=StravaRecords)
+app.add_url_rule("/strava-libre/", view_func=StravaLibreRecords)
 app.add_url_rule("/glucose/aggregate/15min", view_func=Aggregate15min)
 app.add_url_rule("/strava/summary", view_func=StravaSummary)
 
