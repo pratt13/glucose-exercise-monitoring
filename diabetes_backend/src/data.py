@@ -24,8 +24,7 @@ class Data:
         so we dont wnat to needlessely check it again.)
         Retrieve all the glucose data within those time ranges
         """
-        logger.debug("***********************************************")
-        logger.debug("combine_data()")
+        logger.info("*" * 50 + "\n" + " " * 20 + "combine_data()" + " " * 20 + "*" * 50)
         new_records = []
         last_strava_libre_record = self.db_manager.get_last_record(
             DATA_TYPES.STRAVA_LIBRE
@@ -54,10 +53,11 @@ class Data:
                 current_timestamp = libre_record[2]
                 current_glucose = libre_record[1]
                 current_libre_id = libre_record[0]
-                timestamp_since_start = (
-                    convert_str_to_ts(current_timestamp, DATETIME_FORMAT)
-                    - convert_str_to_ts(start_time, "%Y-%m-%dT%H:%M:%SZ")
-                ).total_seconds()
+                # timestamp_since_start = (
+                #     convert_str_to_ts(current_timestamp, DATETIME_FORMAT)
+                #     - convert_str_to_ts(start_time, "%Y-%m-%dT%H:%M:%SZ")
+                # ).total_seconds()
+                timestamp_since_start = (current_timestamp - start_time).total_seconds()
 
                 new_records.append(
                     (
@@ -72,8 +72,12 @@ class Data:
                 )
                 # Increment index
                 new_entry_id += 1
-        logger.debug(f"new_records: {new_records}")
-        if new_records:
-            self.db_manager.save_data(new_records, DATA_TYPES.STRAVA_LIBRE)
-        else:
-            logger.debug("no records to add to DATA_TYPES.STRAVA_LIBRE")
+        self._save_data(new_records)
+
+    def _save_data(self, records_to_save):
+        logger.info(f"Saving {len(records_to_save)} to {DATA_TYPES.STRAVA_LIBRE}")
+        if records_to_save:
+            self.db_manager.save_data(records_to_save, DATA_TYPES.STRAVA_LIBRE)
+        logger.info(
+            f"Successfully saved {len(records_to_save)} to {DATA_TYPES.STRAVA_LIBRE}"
+        )
