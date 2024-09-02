@@ -25,3 +25,10 @@
 - [ ] New % in target endpoint
 - [ ] New % of lows in hour intervals (24 column bar chart)
 - [ ] Return dict instead of tuples from db.
+- [ ] Need to omit overllaping exercises (run/walk that are less than 60 minutes apart)
+- [ ] Dynamic interval times.
+- [ ] Change timestamp_since_start = (current_timestamp - start_time).total_seconds() to use activity_start_time for -ive numbers
+- [ ] Mark data how far to last and next activity
+- [ ] Average highs/lows variance on day during exercise vs no excercise
+- [ ] Variance on day during exercise vs no excercise
+- [ ] Lows in the evening exercise vs not
