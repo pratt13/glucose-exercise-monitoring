@@ -33,6 +33,7 @@ from src.utils import (
     aggregate_strava_libre_glucose_data,
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
+    run_sum_strava_data,
 )
 from src.schemas import TimeIntervalSchema
 from src.views.raw_data import RawData
@@ -122,7 +123,7 @@ StravaSummary = Metric.as_view(
     "strava-summary",
     TimeIntervalSchema(),
     strava,
-    lambda x: aggregate_strava_data(x, 1, 2),
+    lambda x: run_sum_strava_data(x, 5, 1, 2),
 )
 StravaLibreSummary = Metric.as_view(
     "strava-libre-summary",
