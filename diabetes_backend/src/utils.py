@@ -238,7 +238,7 @@ def raw_libre_data_analysis(data, timestamp_index, glucose_index, high=10, low=4
         ):
             # Just changing into it, or out of it
             x = compute_x_time_value(
-                (last_time, cur_time), (cur_time, cur_glucose), high
+                (last_time, last_glucose), (cur_time, cur_glucose), high
             )
             new_data.append(
                 [
@@ -251,7 +251,7 @@ def raw_libre_data_analysis(data, timestamp_index, glucose_index, high=10, low=4
         ):
             # Just changing into it, or out of it
             x = compute_x_time_value(
-                (last_time, cur_time), (cur_time, cur_glucose), low
+                (last_time, last_glucose), (cur_time, cur_glucose), low
             )
             new_data.append(
                 [
@@ -397,3 +397,80 @@ def compute_x_time_value(pos1, pos2, target_y_value):
     m = (y2 - y1) / ((x2 - x1).total_seconds())
     c = y2 - (m * (x2 - x1.replace(second=0, hour=0, minute=0)).total_seconds())
     return (target_y_value - c) / m
+
+
+def compute_time_bucketed_metrics(data, timestamp_index, glucose_index, high=10, low=4):
+    """
+    TODO:
+    Get the raw data,
+        * add a column for high, +1 if goes from normal to high
+        * add a column for low, +1 if goes from normal to high
+    Group the data by hours
+    """
+    # Unpack the data - don't use zip unless we know the structure instead use index
+    # As its ordered we can remove the day data now, but instead just first day of the
+    # millenium
+    # TODO: Format to time only
+    ordered_data = sorted(data, key=lambda x: x[timestamp_index])
+    total_days = int(
+        (
+            ordered_data[0][timestamp_index] - ordered_data[-1][timestamp_index]
+        ).total_seconds()
+        / (60 * 60 * 24)
+    )
+    logger.info(f"Total days in range {total_days}")
+    timestamp_list = list(
+        map(
+            lambda x: x[timestamp_index].replace(year=2000, day=1, month=1),
+            ordered_data,
+        )
+    )
+    glucose_list = list(map(lambda x: float(x[glucose_index]), ordered_data))
+
+    # Create a DataFrame
+    df = pd.DataFrame({"timestamp": timestamp_list, "glucose": glucose_list})
+
+    # calculate the time difference between consecutive rows
+    # DO one iteration if no pandas way with apply
+    df["new_high"] = [
+        cur_gluc >= high and glucose_list[idx - 1] < high
+        for idx, cur_gluc in enumerate(glucose_list[1:], start=1)
+    ]
+    df["new_low"] = [
+        cur_gluc <= low and glucose_list[idx - 1] > high
+        for idx, cur_gluc in enumerate(glucose_list[1:], start=1)
+    ]
+    # df["new_high"] = 1 if df.glucose >= high and df.glucose.shift(-1, fill_value=5) < high else 0
+    # df["new_low"] = 1 if df.glucose <= low and df.glucose.shift(-1, fill_value=5) > low else 0
+    # df["new_high"] = df["glucose"].rolling(2).apply(lambda x, y: 1 if x >= high and y < high else 0)
+    # df["new_low"] = df["glucose"].rolling(2).apply(lambda x, y: 1 if x <= low and y > low else 0)
+
+    # Groupby
+    # TODO: One operation?
+    df["num_highs"] = df.groupby([pd.Grouper(key="timestamp", freq="1H")])[
+        "new_high"
+    ].agg(["count"])
+    df["num_lows"] = df.groupby([pd.Grouper(key="timestamp", freq="1H")])[
+        "new_low"
+    ].agg(["count"])
+    dfagg = df.groupby([pd.Grouper(key="timestamp", freq="1H")])["glucose"].agg(
+        ["mean", "median", "var", "count", "std", "max", "min"]
+    )
+
+    logger.info(df)
+
+    return {
+        "data": ordered_data,
+        "agg": {
+            "intervals": list(df.index.values),
+            "count_lows": df["num_lows"].to_list(),
+            "count_highs": df["num_highs"].to_list(),
+            "mean": dfagg["mean"].to_list(),
+            "count_events": dfagg["count"].to_list(),
+            "median": dfagg["median"].to_list(),
+            "var": dfagg["var"].to_list(),
+            "std": dfagg["std"].to_list(),
+            "max": dfagg["max"].to_list(),
+            "min": dfagg["min"].to_list(),
+        },
+    }
