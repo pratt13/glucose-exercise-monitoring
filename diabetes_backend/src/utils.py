@@ -226,33 +226,66 @@ def raw_libre_data_analysis(data, timestamp_index, glucose_index, high=10, low=4
 
 
     """
+    # Order (in time order) and extract the data
     ordered_data = sorted(data, key=lambda x: x[timestamp_index])
     timestamp_list = list(map(lambda x: x[timestamp_index], ordered_data))
     glucose_list = list(map(lambda x: float(x[glucose_index]), ordered_data))
     last_glucose = glucose_list[0]
     last_time = timestamp_list[0]
     new_data = []
+    # Set the last transition time
+    last_transition_time = last_time
+
+    # Running count for the seconds low/high
+    total_seconds = (timestamp_list[-1] - timestamp_list[0]).total_seconds()
+    total_high_seconds = 0
+    total_low_seconds = 0
+
+    # Running count of number of highs
+    number_of_highs = 1 if last_glucose >= high else 0
+    number_of_lows = 1 if last_glucose <= low else 0
+
     for cur_glucose, cur_time in zip(glucose_list[1:], timestamp_list[1:]):
-        if (cur_glucose > high and last_glucose < high) or (
-            cur_glucose < high and last_glucose > high
+        if (cur_glucose >= high and last_glucose < high) or (
+            cur_glucose < high and last_glucose >= high
         ):
-            # Just changing into it, or out of it
+            # Just changing into it, or out of it, compute the x value of the
+            # transition using a linear relationship
             x = compute_x_time_value(
                 (last_time, last_glucose), (cur_time, cur_glucose), high
             )
+            # If moving into high just set the last_transition_time
+            if cur_glucose >= high and last_glucose < high:
+                last_transition_time = cur_time.replace(
+                    second=0, hour=0, minute=0
+                ) + timedelta(seconds=x)
+                number_of_highs += 1
+            else:
+                total_high_seconds += (cur_time - last_transition_time).total_seconds()
+            # Add the data
+            # TODO: Not strictly needed, can remove
             new_data.append(
                 [
                     high,
                     cur_time.replace(second=0, hour=0, minute=0) + timedelta(seconds=x),
                 ]
             )
-        elif (cur_glucose < low and last_glucose > low) or (
-            cur_glucose > low and last_glucose < low
+        elif (cur_glucose <= low and last_glucose > low) or (
+            cur_glucose > low and last_glucose <= low
         ):
-            # Just changing into it, or out of it
+            # Just changing into it, or out of it, compute the x value of the
+            # transition using a linear relationship
             x = compute_x_time_value(
                 (last_time, last_glucose), (cur_time, cur_glucose), low
             )
+            # If moving into low just set the last_transition_time
+            if cur_glucose <= low and last_glucose > low:
+                last_transition_time = cur_time.replace(
+                    second=0, hour=0, minute=0
+                ) + timedelta(seconds=x)
+                number_of_lows += 1
+            else:
+                total_low_seconds += (cur_time - last_transition_time).total_seconds()
             new_data.append(
                 [
                     low,
@@ -260,42 +293,39 @@ def raw_libre_data_analysis(data, timestamp_index, glucose_index, high=10, low=4
                 ]
             )
 
+        # Update the last record processed
         last_glucose = cur_glucose
         last_time = cur_time
 
     # Add new data
-    expanded_data = sorted(
-        list(zip(glucose_list, timestamp_list)) + new_data, key=lambda x: x[1]
-    )
-    new_glucose_list, _ = zip(*expanded_data)
+    # expanded_data = sorted(
+    #     list(zip(glucose_list, timestamp_list)) + new_data, key=lambda x: x[1]
+    # )
+    # new_glucose_list, _ = zip(*expanded_data)
 
-    total_seconds = (timestamp_list[-1] - timestamp_list[0]).total_seconds()
-    total_high_seconds = 0
-    total_low_seconds = 0
-
-    # Naive solution - pandas groupby must work or something similar
-    is_low = expanded_data[0][0] < low
-    is_high = expanded_data[0][0] > high
-    last_time = (
-        None
-        if expanded_data[0][0] > high or expanded_data[0][0] < low
-        else expanded_data[0][1]
-    )
-    for gluc, time in expanded_data[1:]:
-        if is_low and gluc >= low and gluc <= high:
-            total_low_seconds += (time - last_time).total_seconds()
-            is_low = False
-            last_time = time
-        elif is_high and gluc >= low and gluc <= high:
-            total_high_seconds += (time - last_time).total_seconds()
-            is_high = False
-            last_time = time
-        elif gluc < low:
-            is_low = True
-            last_time = time
-        elif gluc > high:
-            is_high = True
-            last_time = time
+    # # Naive solution - pandas groupby must work or something similar
+    # is_low = expanded_data[0][0] < low
+    # is_high = expanded_data[0][0] > high
+    # last_time = (
+    #     None
+    #     if expanded_data[0][0] > high or expanded_data[0][0] < low
+    #     else expanded_data[0][1]
+    # )
+    # for gluc, time in expanded_data[1:]:
+    #     if is_low and gluc >= low and gluc <= high:
+    #         total_low_seconds += (time - last_time).total_seconds()
+    #         is_low = False
+    #         last_time = time
+    #     elif is_high and gluc >= low and gluc <= high:
+    #         total_high_seconds += (time - last_time).total_seconds()
+    #         is_high = False
+    #         last_time = time
+    #     elif gluc < low:
+    #         is_low = True
+    #         last_time = time
+    #     elif gluc > high:
+    #         is_high = True
+    #         last_time = time
 
     # Blah
     # create a sample DataFrame
@@ -324,17 +354,15 @@ def raw_libre_data_analysis(data, timestamp_index, glucose_index, high=10, low=4
     # new_data = populate_glucose_data(expanded_data)
 
     return {
-        "raw_data": expanded_data,
+        "raw_data": list(zip(glucose_list, timestamp_list)),
         "meta_data": {
             "percentage_of_time_in_target": 100
             * (total_seconds - total_high_seconds - total_low_seconds)
             / total_seconds,
             "percentage_of_time_low": 100 * total_low_seconds / total_seconds,
             "percentage_of_time_high": 100 * total_high_seconds / total_seconds,
-            "number_highs": (new_glucose_list.count(high) // 2)
-            + (new_glucose_list.count(high) % 2),
-            "number_lows": (new_glucose_list.count(low) // 2)
-            + (new_glucose_list.count(low) % 2),
+            "number_highs": number_of_highs,
+            "number_lows": number_of_highs,
             "mean": mean,
             "st_dev": np.sqrt(df["st_dev_pre_calc"].sum() / n),
         },
@@ -395,7 +423,7 @@ def compute_x_time_value(pos1, pos2, target_y_value):
     x1, y1 = pos1
     x2, y2 = pos2
     m = (y2 - y1) / ((x2 - x1).total_seconds())
-    c = y2 - (m * (x2 - x1.replace(second=0, hour=0, minute=0)).total_seconds())
+    c = y2 - (m * (x2 - x2.replace(second=0, hour=0, minute=0)).total_seconds())
     return (target_y_value - c) / m
 
 
@@ -432,11 +460,11 @@ def compute_time_bucketed_metrics(data, timestamp_index, glucose_index, high=10,
 
     # calculate the time difference between consecutive rows
     # DO one iteration if no pandas way with apply
-    df["new_high"] = [
+    df["new_high"] = [1 if glucose_list[0] >= high else 0] + [
         cur_gluc >= high and glucose_list[idx - 1] < high
         for idx, cur_gluc in enumerate(glucose_list[1:], start=1)
     ]
-    df["new_low"] = [
+    df["new_low"] = [1 if glucose_list[0] <= low else 0] + [
         cur_gluc <= low and glucose_list[idx - 1] > high
         for idx, cur_gluc in enumerate(glucose_list[1:], start=1)
     ]
