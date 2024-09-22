@@ -12,6 +12,10 @@ from src.utils import (
     compute_y_value_with_x_time,
     convert_str_to_ts,
     convert_ts_to_str,
+    get_seconds_from_pandas_interval,
+    glucose_moment_data,
+    glucose_quartile_data,
+    libre_hba1c,
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
 )
@@ -297,5 +301,70 @@ class TestUtils(unittest.TestCase):
                 "percentageOfTimeHigh": 7.5,
                 "numberOfHighs": 1,
                 "numberOfLows": 2,
+            },
+        )
+
+    def test_libre_hba1c(self):
+        # No data
+        self.assertEqual(libre_hba1c([], 1, 0), {"hBA1C": None})
+        self.assertEqual(libre_hba1c([(1, 2)], 1, 0), {"hBA1C": None})
+
+        # Data range is too small
+        data = [(5, dt(2000, 1, 1, 12, 0, 0)), (5, dt(2000, 1, 1, 12, 12, 0))]
+        self.assertEqual(libre_hba1c(data, 1, 0), {"hBA1C": None})
+
+        # Valid data
+        data = [
+            (6, dt(2000, 1, 1, 12, 0, 0)),
+            (6, dt(2000, 1, 1, 12, 10, 0)),  # 10 minutes mean 6
+            (8, dt(2000, 1, 1, 12, 30, 0)),  # 20 mins mean 7
+            (12, dt(2000, 1, 1, 12, 40, 0)),  # 10 mins mean 10
+            (2, dt(2000, 1, 1, 13, 10, 0)),  # 30 mins mean 7
+            (4, dt(2000, 1, 1, 13, 30, 0)),  # 20 mins mean 3
+        ]
+        # 90 minutes
+        # (10 * 6 + 20 * 7 + 10 * 10 + 30 * 7 + 20 * 3) / 90 = 6.33333333333
+        self.assertEqual(libre_hba1c(data, 1, 0), {"hBA1C": 6.333333333333333})
+
+    def test_get_seconds_from_pandas_interval(self):
+        self.assertEqual(get_seconds_from_pandas_interval("10min"), 600)
+        self.assertEqual(get_seconds_from_pandas_interval("90min"), 90 * 60)
+        with self.assertRaises(NotImplementedError):
+            get_seconds_from_pandas_interval("1hour")
+
+    def test_glucose_moment_data(self):
+        data = [
+            # First quarter day 1
+            (6, dt(2000, 1, 1, 12, 1, 0)),
+            (7, dt(2000, 1, 1, 12, 10, 0)),
+            (8, dt(2000, 1, 1, 12, 14, 0)),
+            # Second quarter day 1
+            (8, dt(2000, 1, 1, 12, 20, 0)),
+            (7, dt(2000, 1, 1, 12, 29, 0)),
+            # Third quarter day 1
+            (6, dt(2000, 1, 1, 12, 35, 0)),
+            (6, dt(2000, 1, 1, 12, 40, 0)),
+            (5, dt(2000, 1, 1, 12, 44, 0)),
+            # Second day, quarter 1
+            (12, dt(2000, 1, 2, 12, 1, 0)),
+            (14, dt(2000, 1, 2, 12, 10, 0)),
+            (15, dt(2000, 1, 2, 12, 14, 0)),
+            # No data in second quarter
+            # Third quarter day 2
+            (5, dt(2000, 1, 2, 12, 35, 0)),
+            (3, dt(2000, 1, 2, 12, 40, 0)),
+            (4, dt(2000, 1, 2, 12, 44, 0)),
+        ]
+        self.assertEqual(
+            glucose_quartile_data(data, 1, 0),
+            {
+                "intervals": ["12:00", "12:15", "12:30"],
+                "maxValues": [15.0, 8.0, 6.0],
+                "minValues": [6.0, 7.0, 3.0],
+                "medianValues": [10.0, 7.5, 5.0],
+                "q10": [6.5, 7.1, 3.5],
+                "q25": [7.25, 7.25, 4.25],
+                "q75": [13.5, 7.75, 5.75],
+                "q90": [14.5, 7.9, 6.0],
             },
         )

@@ -60,16 +60,13 @@ def q90(x):
     return x.quantile(0.9)
 
 
-# # 90th Percentile
-# def has_lows(x, low=4):
-#     return 1 if x
-
-
 def glucose_quartile_data(data, date_index, glucose_index):
     """
-    Bucket the data into intervals, default 15minute
-    Compute the average
-    Variance
+    Bucket the data into intervals
+    Compute the quartile data
+    For quartile data we do not need additional extrapolation of data
+    to include boundary points. We can group all the data between a time interval
+    and analyse that.
     """
     logger.debug("glucose_quartile_data()")
     timestamps = list(
@@ -323,6 +320,9 @@ def libre_hba1c(data, timestamp_index, glucose_index):
     Computing the HBA1C
     """
     logger.debug("libre_hba1c()")
+
+    if len(data) < 2:
+        return {"hBA1C": None}
 
     # Order (in time order) and extract the data
     ordered_data = sorted(data, key=lambda x: x[timestamp_index])
@@ -919,18 +919,6 @@ def raw_libre_data_analysis(data, timestamp_index, glucose_index, high=10, low=4
             "stDev": np.sqrt(df["st_dev_pre_calc"].sum() / n),
         },
     }
-
-
-def compute_non_standard_time_series_stats(data):
-    first_glucose, first_time = data[0]
-    prev_glucose = first_glucose
-    prev_time = first_time
-    _last_glucose, last_time = data[-1]
-    # _new_data = []
-    mean = 0
-    # _total_seconds = (last_time - first_time).total_seconds()
-    for cur_glucose, cur_time in data[1:]:
-        mean += abs(cur_glucose - prev_glucose) / (cur_time - prev_time).total_seconds()
 
 
 def populate_glucose_data(data, min_interval=5):
