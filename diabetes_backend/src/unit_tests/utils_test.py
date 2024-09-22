@@ -110,8 +110,12 @@ class TestUtils(unittest.TestCase):
             "std": [0.40824829046386313, 0.0, 0.0, 0.0],
             "max": [6, 5.2, 0, 6],
             "min": [5, 5.2, 0, 6],
+            "q10": [5.15, 5.2, 0.0, 6.0],
+            "q25": [5.375, 5.2, 0.0, 6.0],
+            "q75": [5.625, 5.2, 0.0, 6.0],
+            "q90": [5.85, 5.2, 0.0, 6.0],
         }
-        self.assertEqual(
+        self.assertDictEqual(
             aggregate_glucose_data(self.test_glucose_data, 1, 2), expected_data
         )
 
