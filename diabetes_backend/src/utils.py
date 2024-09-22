@@ -360,10 +360,9 @@ def libre_hba1c(data, timestamp_index, glucose_index):
     }
 
 
-# noqa: C901
 def compute_percentages(  # noqa: C901
     data, interval_length_seconds=3600, high=10, low=4
-):  # noqa: C901
+):
     """
     Computing the percentage of time below/above a threshold
     Assumes the last record and the first record is the span of the window
