@@ -1,6 +1,7 @@
 """"
 Simple FLASK app
 """
+
 import os
 import logging
 from dotenv import load_dotenv
@@ -32,12 +33,18 @@ from src.utils import (
     aggregate_strava_data,
     aggregate_strava_libre_glucose_data,
     compute_time_bucketed_metrics,
+    glucose_moment_data,
+    glucose_quartile_data,
+    libre_data_bucketed_day_overview,
+    libre_extremes_in_buckets,
+    libre_glucose_percentages,
+    libre_hba1c,
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
     raw_libre_data_analysis,
     run_sum_strava_data,
 )
-from src.schemas import TimeIntervalSchema
+from src.schemas import TimeIntervalSchema, TimeIntervalWithBucketSchema
 from src.views.raw_data import RawData
 from src.database_manager import PostgresManager
 
@@ -115,11 +122,29 @@ StravaLibreRecords = RawData.as_view(
     TimeIntervalSchema(),
     data,
 )
+Hba1c = Metric.as_view(
+    "hba1c",
+    TimeIntervalSchema(),
+    libre,
+    lambda x: libre_hba1c(x, 2, 1),
+)
+LibrePercentage = Metric.as_view(
+    "libre-percentage",
+    TimeIntervalSchema(),
+    libre,
+    lambda x: libre_extremes_in_buckets(x, 2, 1),
+)
+LibrePercentageDayOverview = Metric.as_view(
+    "libre-percentage-day-overview",
+    TimeIntervalWithBucketSchema(),
+    libre,
+    lambda x, **kwargs: libre_data_bucketed_day_overview(x, 2, 1, **kwargs),
+)
 Aggregate15min = Metric.as_view(
     "test",
     TimeIntervalSchema(),
     libre,
-    lambda x: aggregate_glucose_data(x, 2, 1, interval="15min"),
+    lambda x, **kwargs: aggregate_glucose_data(x, 2, 1, **kwargs),
 )
 StravaSummary = Metric.as_view(
     "strava-summary",
@@ -145,6 +170,18 @@ LibreHourMetaSummary = Metric.as_view(
     libre,
     lambda x: compute_time_bucketed_metrics(x, 2, 1),
 )
+LibreQuartileSummary = Metric.as_view(
+    "libre-quartile-data",
+    TimeIntervalSchema(),
+    libre,
+    lambda x: glucose_quartile_data(x, 2, 1),
+)
+LibreMomentSummary = Metric.as_view(
+    "libre-moment-data",
+    TimeIntervalSchema(),
+    libre,
+    lambda x: glucose_moment_data(x, 2, 1),
+)
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/strava/", view_func=StravaRecords)
 app.add_url_rule("/strava-libre/", view_func=StravaLibreRecords)
@@ -153,6 +190,11 @@ app.add_url_rule("/strava/summary", view_func=StravaSummary)
 app.add_url_rule("/strava-libre/summary", view_func=StravaLibreSummary)
 app.add_url_rule("/glucose/meta", view_func=LibreMetaSummary)
 app.add_url_rule("/glucose/test", view_func=LibreHourMetaSummary)
+app.add_url_rule("/glucose/hba1c", view_func=Hba1c)
+app.add_url_rule("/glucose/percentage", view_func=LibrePercentage)
+app.add_url_rule("/glucose/percentage/day", view_func=LibrePercentageDayOverview)
+app.add_url_rule("/glucose/quartile", view_func=LibreQuartileSummary)
+app.add_url_rule("/glucose/moments", view_func=LibreMomentSummary)
 
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
