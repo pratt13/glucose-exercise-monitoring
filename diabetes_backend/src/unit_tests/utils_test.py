@@ -18,6 +18,7 @@ from src.utils import (
     libre_hba1c,
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
+    populate_glucose_data,
 )
 
 
@@ -332,7 +333,7 @@ class TestUtils(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             get_seconds_from_pandas_interval("1hour")
 
-    def test_glucose_moment_data(self):
+    def test_glucose_quartile_data(self):
         data = [
             # First quarter day 1
             (6, dt(2000, 1, 1, 12, 1, 0)),
@@ -368,3 +369,55 @@ class TestUtils(unittest.TestCase):
                 "q90": [14.5, 7.9, 6.0],
             },
         )
+
+    def test_populate_glucose_data(self):
+        # Unequal lists
+        with self.assertRaises(ValueError) as ex:
+            populate_glucose_data([1], [])
+        self.assertEqual(
+            str(ex.exception),
+            "Cannot have different length timestamp (1) and glucose lists (0)",
+        )
+
+        # List to short lists
+        with self.assertRaises(ValueError) as ex:
+            populate_glucose_data([1], [2])
+        self.assertEqual(
+            str(ex.exception),
+            "Not enough data: (1)",
+        )
+
+        # Populate an hour data with the boundary points
+        # No data point at first boundary point, only after
+        # no data between 30 and 45 minutes
+        # Data is designed so on the interval it is nice and easy
+        timestamp_data = [
+            dt(2024, 1, 1, 12, 5, 0),
+            dt(2024, 1, 1, 12, 10, 0),
+            dt(2024, 1, 1, 12, 20, 0),
+            dt(2024, 1, 1, 12, 25, 0),
+            dt(2024, 1, 1, 12, 50, 0),
+            dt(2024, 1, 1, 12, 55, 0),
+        ]
+        glucose_data = [6, 8, 10, 12, 8, 7]
+        expected_new_data = [
+            (dt(2024, 1, 1, 12, 14, 59), 9.0),
+            (dt(2024, 1, 1, 12, 15, 0), 9.0),
+            (dt(2024, 1, 1, 12, 29, 59), 11.2),
+            (dt(2024, 1, 1, 12, 30, 0), 11.2),
+            (dt(2024, 1, 1, 12, 44, 59), 8.8),
+            (dt(2024, 1, 1, 12, 45, 0), 8.8),
+        ]
+        expected_timestamp_data, expected_glucose_data = list(
+            zip(
+                *sorted(
+                    expected_new_data + list(zip(timestamp_data, glucose_data)),
+                    key=lambda x: x[0],
+                )
+            )
+        )
+        res_timestamp_data, res_glucose_data = populate_glucose_data(
+            timestamp_data, glucose_data, interval_in_mins=15
+        )
+        self.assertEqual(expected_timestamp_data, res_timestamp_data)
+        self.assertEqual(expected_glucose_data, res_glucose_data)

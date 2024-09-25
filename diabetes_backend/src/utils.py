@@ -103,6 +103,7 @@ def glucose_quartile_data(data, date_index, glucose_index):
 def glucose_moment_data(data, date_index, glucose_index):
     """
     Bucket the data into 15minute intervals and compute the moments
+    Need to add additional boundary points
     """
     logger.debug("glucose_moment_data()")
     timestamps = list(
@@ -110,16 +111,50 @@ def glucose_moment_data(data, date_index, glucose_index):
     )
     glucose_list = list(map(lambda x: float(x[glucose_index]), data))
 
-    df = pd.DataFrame({"time": timestamps, "raw": glucose_list})
-    # COnvert to dt and replace all the yyy/mm/dd with the same as we only want hours
+    # Enrich the data with boundary points
+    enriched_timestamp_list, enriched_glucose_list = populate_glucose_data(
+        timestamps, glucose_list, interval_in_mins=15
+    )
+
+    # Create a df and compute time bucket metrics for it all
+    df = pd.DataFrame(
+        {"time": enriched_timestamp_list, "glucose": enriched_glucose_list}
+    )
+
+    # Compute the mean and variance for each window
+    total_seconds = (
+        enriched_timestamp_list[-1] - enriched_timestamp_list[0]
+    ).total_seconds()
+
+    # Calculate the time difference between consecutive rows
+    df["time_diff"] = df["timestamp"].diff()
+    # Replace missing values with a default value
+    df["time_diff"] = df["time_diff"].fillna(pd.Timedelta(seconds=0))
+    df["time_diff"] = list(map(lambda x: x.total_seconds(), df["time_diff"]))
+
+    df["glucose_diff"] = df["glucose"].rolling(2).mean()
+    df["rolling_mean"] = list(
+        map(
+            lambda x, y: 0 if x == 0 else abs(y) * (x / total_seconds),
+            df["time_diff"],
+            df["glucose_diff"],
+        )
+    )
+
+    # Convert to dt and replace all the yyy/mm/dd with the same as we only want hours
     # may want to do pd series instead at some point
     df["time"] = pd.to_datetime(df["time"]).apply(
         lambda t: t.replace(day=31, year=2000, month=12)
     )
 
-    df = df.groupby([pd.Grouper(key="time", freq="15min")])["raw"].agg(
-        ["mean", "median", "var", "count", "std", "max", "min", q10, q25, q75, q90]
-    )
+    # Now group into the intervals
+    # Here we mean the st_dev as the data sets for each interval on a different
+    # day are independent so we average out the variances in this case.
+    # If I'm honest i think now the mean is not a good measure overlaying the days
+    # and grouping the bucketted data, however we persist for now
+    # TODO: Need to compute the stdev once the mean is computed for
+    # each bucket pre-nomralised then mean of the st dev. Yuk
+    # grouped_df = df.groupby([pd.Grouper(key="time", freq="15min")]).agg({""})
     # Format the time column
     df.index = df.index.strftime("%H:%M")
     # Crude hack for NaN
@@ -130,8 +165,8 @@ def glucose_moment_data(data, date_index, glucose_index):
         "numRecords": df["count"].to_list(),
         "varValues": df["var"].to_list(),
         "stdValues": df["std"].to_list(),
-        "maxValues": df["max"].to_list(),
-        "minValues": df["min"].to_list(),
+        "maxMeanValues": df["max"].to_list(),
+        "minMeanValues": df["min"].to_list(),
     }
 
 
@@ -921,29 +956,74 @@ def raw_libre_data_analysis(data, timestamp_index, glucose_index, high=10, low=4
     }
 
 
-def populate_glucose_data(data, min_interval=5):
+def populate_glucose_data(timestamp_list, glucose_list, interval_in_mins=5):
     """
     Populate missing data using a linear assumption between consecutive points.
     """
-    last_glucose, last_time = data[0]
-    new_data = []
-    for cur_glucose, cur_time in data[1:]:
-        if (cur_time - last_time).total_seconds() > min_interval * 60:
-            last_glucose = cur_glucose
-            last_time = cur_time
-            continue
-        new_time, new_glucose = compute_y_value_with_x_time(
-            (last_time, last_glucose),
-            (cur_time, cur_glucose),
-            target_x_value_mins=min_interval,
+    logger.debug(
+        f"populate_glucose_data() with interval: {interval_in_mins} minute intervals"
+    )
+    if len(timestamp_list) != len(glucose_list):
+        raise ValueError(
+            f"Cannot have different length timestamp ({len(timestamp_list)}) and glucose lists ({len(glucose_list)})"
         )
-        new_data.append([new_glucose, new_time])
-        # Update the last glucose
-        last_time = new_time
-        last_glucose = new_glucose
+    elif len(timestamp_list) < 2:
+        raise ValueError(f"Not enough data: ({len(timestamp_list)})")
 
-    sorted_data = sorted(data + new_data, key=lambda x: x[1])
-    return sorted_data
+    # If data is all within the same interval
+    # Find the intervals going to be defined
+    # Then populate the boundaries
+    intervals = [
+        d.to_pydatetime()
+        for d in pd.DataFrame(
+            {
+                "timestamp": [timestamp_list[0], timestamp_list[-1]],
+                "value": [0, 1],
+            }
+        )
+        .groupby([pd.Grouper(key="timestamp", freq=f"{interval_in_mins}min")])
+        .groups.keys()
+    ]
+    last_timestamp = timestamp_list[0]
+    last_glucose = glucose_list[0]
+    current_interval_index = 1
+    current_interval = intervals[current_interval_index]
+    enriched_data = list(zip(timestamp_list, glucose_list))
+    for timestamp, glucose in zip(timestamp_list[1:], glucose_list[1:]):
+        if (current_interval - last_timestamp).total_seconds() > 0 and (
+            timestamp - current_interval
+        ).total_seconds() > 0:
+            # Add the extra points if across boundary
+            # neither points are zero else they are boundary points
+
+            # Loop over the intervals to handle gaps
+            while (timestamp - current_interval).total_seconds() > 0:
+                print("Current interval")
+                print(current_interval)
+                _, new_y_data_point = compute_y_value_with_x_time(
+                    (last_timestamp, last_glucose),
+                    (timestamp, glucose),
+                    (current_interval - last_timestamp).total_seconds() / 60,
+                )
+                # Add new data points
+                enriched_data.append(
+                    (current_interval - timedelta(seconds=1), new_y_data_point)
+                )
+                enriched_data.append((current_interval, new_y_data_point))
+                # increment running values
+                current_interval_index += 1
+                if current_interval_index == len(intervals):
+                    # Exit everything has now fallen into the last bucket nothing else to process
+                    break
+                current_interval = intervals[current_interval_index]
+            last_timestamp = current_interval
+            last_glucose = glucose
+
+        # update records
+        last_glucose = glucose
+        last_timestamp = timestamp
+
+    return list(zip(*sorted(enriched_data, key=lambda x: x[0])))
 
 
 def compute_y_value_with_x_time(pos1, pos2, target_x_value_mins=5):
@@ -1050,4 +1130,12 @@ def compute_time_bucketed_metrics(data, timestamp_index, glucose_index, high=10,
             "max": dfagg["max"].to_list(),
             "min": dfagg["min"].to_list(),
         },
+    }
+
+
+def group_glucose_data_by_day(data, timestamp_index, glucose_index):
+    ordered_data = sorted(data, key=lambda x: x[timestamp_index])
+    return {
+        group: [convert_ts_to_str(rec[0], TIME_FMT) for rec in grouped_records]
+        for group, grouped_records in groupby(ordered_data, key=lambda x: x[0].date())
     }

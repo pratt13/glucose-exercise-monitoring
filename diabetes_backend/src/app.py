@@ -35,6 +35,7 @@ from src.utils import (
     compute_time_bucketed_metrics,
     glucose_moment_data,
     glucose_quartile_data,
+    group_glucose_data_by_day,
     libre_data_bucketed_day_overview,
     libre_extremes_in_buckets,
     libre_glucose_percentages,
@@ -182,6 +183,12 @@ LibreMomentSummary = Metric.as_view(
     libre,
     lambda x: glucose_moment_data(x, 2, 1),
 )
+GroupedLibreDayData = Metric.as_view(
+    "libre-grouped-day-data",
+    TimeIntervalSchema(),
+    libre,
+    lambda x: group_glucose_data_by_day(x, 2, 1),
+)
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/strava/", view_func=StravaRecords)
 app.add_url_rule("/strava-libre/", view_func=StravaLibreRecords)
@@ -195,7 +202,7 @@ app.add_url_rule("/glucose/percentage", view_func=LibrePercentage)
 app.add_url_rule("/glucose/percentage/day", view_func=LibrePercentageDayOverview)
 app.add_url_rule("/glucose/quartile", view_func=LibreQuartileSummary)
 app.add_url_rule("/glucose/moments", view_func=LibreMomentSummary)
-
+app.add_url_rule("/glucose/days", view_func=GroupedLibreDayData)
 
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
 scheduler = BackgroundScheduler()
