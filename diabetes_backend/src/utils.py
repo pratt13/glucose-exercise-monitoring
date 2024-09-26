@@ -1,7 +1,6 @@
 import os
 from datetime import datetime, timedelta
 from src.constants import STRAVA_DATETIME, TIME_FMT
-import numpy as np
 import pandas as pd
 from itertools import groupby
 
@@ -205,7 +204,7 @@ def run_sum_strava_data(data, timestamp_index, distance_index, activity_index):
 
     meta_df = df.groupby("activity").max()
     return {
-        "timestamped_data": list(
+        "cumulativeTimestampedData": list(
             zip(
                 df["timestamp"].to_list(),
                 df["activity"].to_list(),
@@ -213,7 +212,7 @@ def run_sum_strava_data(data, timestamp_index, distance_index, activity_index):
                 df["number_activities"].to_list(),
             )
         ),
-        "meta_data": meta_df.to_dict(orient="index"),
+        "metaData": meta_df.to_dict(orient="index"),
     }
 
 

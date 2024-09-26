@@ -19,6 +19,7 @@ from src.utils import (
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
     populate_glucose_data,
+    run_sum_strava_data,
 )
 
 
@@ -469,3 +470,91 @@ class TestUtils(unittest.TestCase):
                         ],
                     },
                 )
+
+    def test_run_sum_strava_data(self):
+        data = [
+            # Day 2
+            (dt(2024, 1, 2, 12, 5, 0), "WALK", 10),
+            (dt(2024, 1, 2, 12, 15, 0), "WALK", 2),
+            (dt(2024, 1, 2, 13, 30, 0), "RUN", 5),
+            # Day 1
+            (dt(2024, 1, 1, 12, 5, 0), "WALK", 1),
+            (dt(2024, 1, 1, 12, 15, 0), "WALK", 3),
+            (dt(2024, 1, 1, 13, 30, 0), "RUN", 5),
+            (dt(2024, 1, 1, 14, 30, 0), "CYCLE", 5),
+            # Day 3
+            (dt(2024, 1, 3, 12, 5, 0), "WALK", 2),
+            (dt(2024, 1, 3, 12, 15, 0), "WALK", 2),
+            (dt(2024, 1, 3, 13, 30, 0), "RUN", 5),
+        ]
+        print(run_sum_strava_data(data, 0, 2, 1))
+        self.assertDictEqual(
+            run_sum_strava_data(data, 0, 2, 1),
+            {
+                "WALK": {
+                    "timestampData": [
+                        {
+                            "timestamp": dt(2024, 1, 1, 12, 5, 0),
+                            "distance": 1,
+                            "totalDistance": 1,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 1, 12, 15, 0),
+                            "distance": 3,
+                            "totalDistance": 4,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 2, 12, 5, 0),
+                            "distance": 10,
+                            "totalDistance": 14,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 2, 12, 15, 0),
+                            "distance": 2,
+                            "totalDistance": 16,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 3, 12, 5, 0),
+                            "distance": 2,
+                            "totalDistance": 18,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 3, 12, 15, 0),
+                            "distance": 2,
+                            "totalDistance": 20,
+                        },
+                    ],
+                    "count": 6,
+                },
+                "RUN": {
+                    "timestampData": [
+                        {
+                            "timestamp": dt(2024, 1, 1, 12, 30, 0),
+                            "distance": 5,
+                            "totalDistance": 5,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 2, 12, 30, 0),
+                            "distance": 5,
+                            "totalDistance": 10,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 3, 12, 30, 0),
+                            "distance": 5,
+                            "totalDistance": 15,
+                        },
+                    ],
+                    "count": 3,
+                },
+                "CYCLE": {
+                    "timestampData": [
+                        {
+                            "timestamp": dt(2024, 1, 1, 14, 30, 0),
+                            "distance": 5,
+                            "totalDistance": 5,
+                        },
+                    ],
+                    "count": 1,
+                },
+            },
+        )
