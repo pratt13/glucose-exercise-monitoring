@@ -197,22 +197,28 @@ def run_sum_strava_data(data, timestamp_index, distance_index, activity_index):
     )
     # Crude hack for NaN
     df = df.fillna(0)
+
+    # Compute running totals of the total_distance and activity count
     df["total_distance"] = df[["activity", "distance"]].groupby(["activity"]).cumsum()
     df["number_activities"] = (
         df[["activity", "distance"]].groupby(["activity"]).cumcount() + 1
     )
 
-    meta_df = df.groupby("activity").max()
+    # Sort the keys
+    sorted_keys = sorted(list(set(activity_list)))
     return {
-        "cumulativeTimestampedData": list(
-            zip(
-                df["timestamp"].to_list(),
-                df["activity"].to_list(),
-                df["total_distance"].to_list(),
-                df["number_activities"].to_list(),
-            )
-        ),
-        "metaData": meta_df.to_dict(orient="index"),
+        key: {
+            "timestampData": [
+                {
+                    "timestamp": row["timestamp"].to_pydatetime(),
+                    "distance": row["distance"],
+                    "totalDistance": row["total_distance"],
+                }
+                for _idx, row in df.loc[df["activity"] == key].iterrows()
+            ],
+            "count": max(df.loc[df["activity"] == key]["number_activities"].to_list()),
+        }
+        for key in sorted_keys
     }
 
 

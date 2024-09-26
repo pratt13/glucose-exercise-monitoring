@@ -479,7 +479,7 @@ class TestUtils(unittest.TestCase):
             (dt(2024, 1, 2, 13, 30, 0), "RUN", 5),
             # Day 1
             (dt(2024, 1, 1, 12, 5, 0), "WALK", 1),
-            (dt(2024, 1, 1, 12, 15, 0), "WALK", 3),
+            (dt(2024, 1, 1, 12, 15, 0), "WALK", "3"),  # Sting value
             (dt(2024, 1, 1, 13, 30, 0), "RUN", 5),
             (dt(2024, 1, 1, 14, 30, 0), "CYCLE", 5),
             # Day 3
@@ -487,74 +487,74 @@ class TestUtils(unittest.TestCase):
             (dt(2024, 1, 3, 12, 15, 0), "WALK", 2),
             (dt(2024, 1, 3, 13, 30, 0), "RUN", 5),
         ]
-        print(run_sum_strava_data(data, 0, 2, 1))
+        self.maxDiff = None
         self.assertDictEqual(
             run_sum_strava_data(data, 0, 2, 1),
             {
-                "WALK": {
-                    "timestampData": [
-                        {
-                            "timestamp": dt(2024, 1, 1, 12, 5, 0),
-                            "distance": 1,
-                            "totalDistance": 1,
-                        },
-                        {
-                            "timestamp": dt(2024, 1, 1, 12, 15, 0),
-                            "distance": 3,
-                            "totalDistance": 4,
-                        },
-                        {
-                            "timestamp": dt(2024, 1, 2, 12, 5, 0),
-                            "distance": 10,
-                            "totalDistance": 14,
-                        },
-                        {
-                            "timestamp": dt(2024, 1, 2, 12, 15, 0),
-                            "distance": 2,
-                            "totalDistance": 16,
-                        },
-                        {
-                            "timestamp": dt(2024, 1, 3, 12, 5, 0),
-                            "distance": 2,
-                            "totalDistance": 18,
-                        },
-                        {
-                            "timestamp": dt(2024, 1, 3, 12, 15, 0),
-                            "distance": 2,
-                            "totalDistance": 20,
-                        },
-                    ],
-                    "count": 6,
-                },
-                "RUN": {
-                    "timestampData": [
-                        {
-                            "timestamp": dt(2024, 1, 1, 12, 30, 0),
-                            "distance": 5,
-                            "totalDistance": 5,
-                        },
-                        {
-                            "timestamp": dt(2024, 1, 2, 12, 30, 0),
-                            "distance": 5,
-                            "totalDistance": 10,
-                        },
-                        {
-                            "timestamp": dt(2024, 1, 3, 12, 30, 0),
-                            "distance": 5,
-                            "totalDistance": 15,
-                        },
-                    ],
-                    "count": 3,
-                },
                 "CYCLE": {
                     "timestampData": [
                         {
                             "timestamp": dt(2024, 1, 1, 14, 30, 0),
-                            "distance": 5,
-                            "totalDistance": 5,
+                            "distance": 5.0,
+                            "totalDistance": 5.0,
                         },
                     ],
                     "count": 1,
+                },
+                "RUN": {
+                    "timestampData": [
+                        {
+                            "timestamp": dt(2024, 1, 1, 13, 30, 0),
+                            "distance": 5.0,
+                            "totalDistance": 5.0,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 2, 13, 30, 0),
+                            "distance": 5.0,
+                            "totalDistance": 10.0,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 3, 13, 30, 0),
+                            "distance": 5.0,
+                            "totalDistance": 15.0,
+                        },
+                    ],
+                    "count": 3,
+                },
+                "WALK": {
+                    "timestampData": [
+                        {
+                            "timestamp": dt(2024, 1, 1, 12, 5, 0),
+                            "distance": 1.0,
+                            "totalDistance": 1.0,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 1, 12, 15, 0),
+                            "distance": 3.0,
+                            "totalDistance": 4.0,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 2, 12, 5, 0),
+                            "distance": 10.0,
+                            "totalDistance": 14.0,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 2, 12, 15, 0),
+                            "distance": 2.0,
+                            "totalDistance": 16.0,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 3, 12, 5, 0),
+                            "distance": 2.0,
+                            "totalDistance": 18.0,
+                        },
+                        {
+                            "timestamp": dt(2024, 1, 3, 12, 15, 0),
+                            "distance": 2.0,
+                            "totalDistance": 20.0,
+                        },
+                    ],
+                    "count": 6,
                 },
             },
         )
