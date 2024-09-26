@@ -212,7 +212,7 @@ def run_sum_strava_data(data, timestamp_index, distance_index, activity_index):
                 {
                     "timestamp": row["timestamp"].to_pydatetime(),
                     "distance": row["distance"],
-                    "totalDistance": row["total_distance"],
+                    "": row["total_distance"],
                 }
                 for _idx, row in df.loc[df["activity"] == key].iterrows()
             ],

@@ -18,6 +18,10 @@ from flask_cors import CORS
 import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
 
+# SqlAlchemy
+from src.glucose_new import GlucoseNew
+from src.database_manager_new import DatabaseManager
+from sqlalchemy import create_engine
 
 # Configuration settings
 from src.data import Data
@@ -43,6 +47,9 @@ from src.utils import (
 from src.schemas import TimeIntervalSchema, TimeIntervalWithBucketSchema
 from src.views.raw_data import RawData
 from src.database_manager import PostgresManager
+
+# SQL
+from src.database.glucose import Base
 
 # Environment variables - default to non-docker patterns
 ENV_FILE = os.getenv("ENV_FILE", ".env.local")
@@ -81,6 +88,18 @@ postgres_manager = PostgresManager(
     os.environ["DB_HOST"],
     os.environ["DB_NAME"],
 )
+# SQLAlchemy engine
+# TODO - protect env vars
+root = "diabetes_root:diabetes_root"
+host = os.environ["DB_HOST"]
+db_name = os.environ["DB_NAME"]
+url = f"postgresql+psycopg2://{root}@{host}:5432/{db_name}"
+engine = create_engine(url, echo=True)
+
+
+# Create if not exists
+Base.metadata.create_all(engine)
+
 # Instantiate the Glucose class
 libre = Glucose(
     *load_libre_credentials_from_env(),
@@ -95,6 +114,12 @@ strava = Strava(
 # Instantiate the Data class
 data = Data(
     postgres_manager,
+)
+# Instantiate the new database manager
+db_manager = DatabaseManager(engine)
+# Instantiate the new glucose class
+glucose_new = GlucoseNew(
+    *load_libre_credentials_from_env(), AuthenticationManagement, db_manager
 )
 
 
@@ -183,6 +208,9 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
 scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
 scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=300)
+# New cron
+scheduler.add_job(func=libre_cron, args=[glucose_new], trigger="interval", seconds=60)
+
 
 with app.app_context():
     scheduler.start()
