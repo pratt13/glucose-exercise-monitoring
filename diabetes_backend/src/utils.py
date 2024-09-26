@@ -82,7 +82,7 @@ def glucose_quartile_data(data, date_index, glucose_index):
     )
 
     df = df.groupby([pd.Grouper(key="time", freq="15min")])["raw"].agg(
-        ["median", "max", "min", q10, q25, q75, q90]
+        ["count", "median", "max", "min", q10, q25, q75, q90]
     )
     # Format the time column
     df.index = df.index.strftime("%H:%M")
@@ -91,6 +91,7 @@ def glucose_quartile_data(data, date_index, glucose_index):
     return {
         "intervals": list(df.index.values),
         "medianValues": df["median"].to_list(),
+        "count": df["count"].to_list(),
         "maxValues": df["max"].to_list(),
         "minValues": df["min"].to_list(),
         "q10": df["q10"].to_list(),
@@ -149,37 +150,6 @@ def aggregate_glucose_data(data, date_index, glucose_index, bucket="15min"):
     }
 
 
-def aggregate_summary_glucose_data(data, date_index, glucose_index):
-    """
-    Compute overview summary data of the glucose
-    """
-    timestamps = list(
-        map(lambda x: convert_time_to_str(x[date_index], STRAVA_DATETIME), data)
-    )
-    glucose_list = list(map(lambda x: float(x[glucose_index]), data))
-
-    df = pd.DataFrame({"time": timestamps, "raw": glucose_list})
-    # TODO: COmpute percenta
-
-    df = df.groupby([pd.Grouper(key="time", freq="1D")])["raw"].agg(
-        ["mean", "median", "var", "count", "std", "max", "min"]
-    )
-    # Crude hack for NaN
-    df = df.fillna(0)
-    return {
-        "days": list(df.index.values),
-        "number_of_lows": [],
-        "number_of_highs": [],
-        "percentage_in_target": [],
-        "mean": df["mean"].to_list(),
-        "std": df["std"].to_list(),
-        "var": df["var"].to_list(),
-        "median": df["median"].to_list(),
-        "max": df["max"].to_list(),
-        "min": df["min"].to_list(),
-    }
-
-
 def aggregate_strava_data(data, distance_index, activity_index):
     """
     Count the different types of activities by time interval returning the
@@ -197,39 +167,6 @@ def aggregate_strava_data(data, distance_index, activity_index):
         "activity": list(df.index.values),
         "total_distance": df["sum"].to_list(),
         "number_activities": df["count"].to_list(),
-    }
-
-
-def aggregate_strava_libre_glucose_data(
-    data, time_index, glucose_index, interval_min=10
-):
-    """
-    Bucket the data into intervals, default 10minute
-    """
-    timestamps = list(map(lambda x: x[time_index], data))
-    glucose_list = list(map(lambda x: float(x[glucose_index]), data))
-
-    df = pd.DataFrame({"time": timestamps, "raw": glucose_list})
-    t_intervals = [
-        t
-        for t in range(
-            min(timestamps), max(timestamps) + interval_min * 60, interval_min * 60
-        )
-    ]
-    df = df.groupby(pd.cut(df["time"], t_intervals))["raw"].agg(
-        ["mean", "median", "var", "count", "std", "max", "min"]
-    )
-    # Crude hack for NaN
-    df = df.fillna(0)
-    return {
-        "intervals": t_intervals,
-        "mean": df["mean"].to_list(),
-        "count": df["count"].to_list(),
-        "median": df["median"].to_list(),
-        "var": df["var"].to_list(),
-        "std": df["std"].to_list(),
-        "max": df["max"].to_list(),
-        "min": df["min"].to_list(),
     }
 
 

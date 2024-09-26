@@ -31,7 +31,6 @@ from src.strava import Strava
 from src.utils import (
     aggregate_glucose_data,
     aggregate_strava_data,
-    aggregate_strava_libre_glucose_data,
     compute_time_bucketed_metrics,
     glucose_quartile_data,
     group_glucose_data_by_day,
@@ -156,7 +155,7 @@ StravaLibreSummary = Metric.as_view(
     "strava-libre-summary",
     TimeIntervalSchema(),
     data,
-    lambda x: aggregate_strava_libre_glucose_data(x, 8, 3),
+    lambda x: glucose_quartile_data(x, 8, 3),
 )
 LibreMetaSummary = Metric.as_view(
     "libre-meta",
@@ -189,7 +188,6 @@ app.add_url_rule("/glucose/aggregate/15min", view_func=Aggregate15min)
 app.add_url_rule("/strava/summary", view_func=StravaSummary)
 app.add_url_rule("/strava-libre/summary", view_func=StravaLibreSummary)
 app.add_url_rule("/glucose/meta", view_func=LibreMetaSummary)
-app.add_url_rule("/glucose/test", view_func=LibreHourMetaSummary)
 app.add_url_rule("/glucose/hba1c", view_func=Hba1c)
 app.add_url_rule("/glucose/percentage", view_func=LibrePercentage)
 app.add_url_rule("/glucose/percentage/day", view_func=LibrePercentageDayOverview)

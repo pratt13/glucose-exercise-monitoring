@@ -360,6 +360,7 @@ class TestUtils(unittest.TestCase):
             glucose_quartile_data(data, 1, 0),
             {
                 "intervals": ["12:00", "12:15", "12:30"],
+                "count": [6, 2, 6],
                 "maxValues": [15.0, 8.0, 6.0],
                 "minValues": [6.0, 7.0, 3.0],
                 "medianValues": [10.0, 7.5, 5.0],
