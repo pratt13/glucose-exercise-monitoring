@@ -13,8 +13,8 @@ from src.utils import (
     convert_str_to_ts,
     convert_ts_to_str,
     get_seconds_from_pandas_interval,
-    glucose_moment_data,
     glucose_quartile_data,
+    group_glucose_data_by_day,
     libre_hba1c,
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
@@ -421,3 +421,50 @@ class TestUtils(unittest.TestCase):
         )
         self.assertEqual(expected_timestamp_data, res_timestamp_data)
         self.assertEqual(expected_glucose_data, res_glucose_data)
+
+    def test_group_glucose_data_by_day(self):
+        data = [
+            # Day 2
+            (dt(2024, 1, 2, 12, 5, 0), 10),
+            (dt(2024, 1, 2, 12, 15, 0), 10),
+            (dt(2024, 1, 2, 13, 30, 0), 11),
+            # Day 1
+            (dt(2024, 1, 1, 12, 5, 0), 9),
+            (dt(2024, 1, 1, 12, 15, 0), 10),
+            (dt(2024, 1, 1, 13, 30, 0), 11),
+            # Day 3
+            (dt(2024, 1, 3, 12, 5, 0), 9),
+            (dt(2024, 1, 3, 12, 15, 0), 10),
+            (dt(2024, 1, 3, 13, 30, 0), 12),
+        ]
+        # Test unsorted data
+        for test_data, is_sorted, is_glucose_string in zip(
+            (
+                data,
+                sorted(data, key=lambda x: x[0]),
+                list(map(lambda x: (x[0], str(x[1])), data)),
+            ),
+            [False, True, False],
+            [False, False, True],
+        ):
+            with self.subTest(is_sorted=is_sorted, is_glucose_string=is_glucose_string):
+                self.assertDictEqual(
+                    group_glucose_data_by_day(data, 0, 1),
+                    {
+                        "2024-01-01": [
+                            ("12:05:00", 9.0),
+                            ("12:15:00", 10.0),
+                            ("13:30:00", 11.0),
+                        ],
+                        "2024-01-02": [
+                            ("12:05:00", 10.0),
+                            ("12:15:00", 10.0),
+                            ("13:30:00", 11.0),
+                        ],
+                        "2024-01-03": [
+                            ("12:05:00", 9.0),
+                            ("12:15:00", 10.0),
+                            ("13:30:00", 12.0),
+                        ],
+                    },
+                )

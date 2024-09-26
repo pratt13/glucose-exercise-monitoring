@@ -100,76 +100,6 @@ def glucose_quartile_data(data, date_index, glucose_index):
     }
 
 
-def glucose_moment_data(data, date_index, glucose_index):
-    """
-    Bucket the data into 15minute intervals and compute the moments
-    Need to add additional boundary points
-    """
-    logger.debug("glucose_moment_data()")
-    timestamps = list(
-        map(lambda x: convert_time_to_str(x[date_index], STRAVA_DATETIME), data)
-    )
-    glucose_list = list(map(lambda x: float(x[glucose_index]), data))
-
-    # Enrich the data with boundary points
-    enriched_timestamp_list, enriched_glucose_list = populate_glucose_data(
-        timestamps, glucose_list, interval_in_mins=15
-    )
-
-    # Create a df and compute time bucket metrics for it all
-    df = pd.DataFrame(
-        {"time": enriched_timestamp_list, "glucose": enriched_glucose_list}
-    )
-
-    # Compute the mean and variance for each window
-    total_seconds = (
-        enriched_timestamp_list[-1] - enriched_timestamp_list[0]
-    ).total_seconds()
-
-    # Calculate the time difference between consecutive rows
-    df["time_diff"] = df["timestamp"].diff()
-    # Replace missing values with a default value
-    df["time_diff"] = df["time_diff"].fillna(pd.Timedelta(seconds=0))
-    df["time_diff"] = list(map(lambda x: x.total_seconds(), df["time_diff"]))
-
-    df["glucose_diff"] = df["glucose"].rolling(2).mean()
-    df["rolling_mean"] = list(
-        map(
-            lambda x, y: 0 if x == 0 else abs(y) * (x / total_seconds),
-            df["time_diff"],
-            df["glucose_diff"],
-        )
-    )
-
-    # Convert to dt and replace all the yyy/mm/dd with the same as we only want hours
-    # may want to do pd series instead at some point
-    df["time"] = pd.to_datetime(df["time"]).apply(
-        lambda t: t.replace(day=31, year=2000, month=12)
-    )
-
-    # Now group into the intervals
-    # Here we mean the st_dev as the data sets for each interval on a different
-    # day are independent so we average out the variances in this case.
-    # If I'm honest i think now the mean is not a good measure overlaying the days
-    # and grouping the bucketted data, however we persist for now
-    # TODO: Need to compute the stdev once the mean is computed for
-    # each bucket pre-nomralised then mean of the st dev. Yuk
-    # grouped_df = df.groupby([pd.Grouper(key="time", freq="15min")]).agg({""})
-    # Format the time column
-    df.index = df.index.strftime("%H:%M")
-    # Crude hack for NaN
-    df = df.fillna(0)
-    return {
-        "intervals": list(df.index.values),
-        "meanValues": df["mean"].to_list(),
-        "numRecords": df["count"].to_list(),
-        "varValues": df["var"].to_list(),
-        "stdValues": df["std"].to_list(),
-        "maxMeanValues": df["max"].to_list(),
-        "minMeanValues": df["min"].to_list(),
-    }
-
-
 def aggregate_glucose_data(data, date_index, glucose_index, bucket="15min"):
     """
     Bucket the data into intervals, default 15minute
@@ -1135,7 +1065,14 @@ def compute_time_bucketed_metrics(data, timestamp_index, glucose_index, high=10,
 
 def group_glucose_data_by_day(data, timestamp_index, glucose_index):
     ordered_data = sorted(data, key=lambda x: x[timestamp_index])
+    timestamp_list = list(map(lambda x: x[timestamp_index], ordered_data))
+    glucose_list = list(map(lambda x: float(x[glucose_index]), ordered_data))
+
     return {
-        group: [convert_ts_to_str(rec[0], TIME_FMT) for rec in grouped_records]
-        for group, grouped_records in groupby(ordered_data, key=lambda x: x[0].date())
+        convert_ts_to_str(group, "%Y-%m-%d"): [
+            (convert_ts_to_str(rec[0], TIME_FMT), rec[1]) for rec in grouped_records
+        ]
+        for group, grouped_records in groupby(
+            list(zip(timestamp_list, glucose_list)), key=lambda x: x[0].date()
+        )
     }
