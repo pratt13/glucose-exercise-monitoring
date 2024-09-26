@@ -437,7 +437,7 @@ class TestUtils(unittest.TestCase):
             (dt(2024, 1, 3, 12, 15, 0), 10),
             (dt(2024, 1, 3, 13, 30, 0), 12),
         ]
-        # Test unsorted data
+        # Test unsorted, unsorted and string glucose data
         for test_data, is_sorted, is_glucose_string in zip(
             (
                 data,
@@ -449,7 +449,7 @@ class TestUtils(unittest.TestCase):
         ):
             with self.subTest(is_sorted=is_sorted, is_glucose_string=is_glucose_string):
                 self.assertDictEqual(
-                    group_glucose_data_by_day(data, 0, 1),
+                    group_glucose_data_by_day(test_data, 0, 1),
                     {
                         "2024-01-01": [
                             ("12:05:00", 9.0),
