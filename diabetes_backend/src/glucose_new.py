@@ -1,6 +1,6 @@
 import requests
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from database.glucose import Glucose
 
 from src.constants import BASE_URL, HEADERS, DATETIME_FORMAT
@@ -72,6 +72,7 @@ class GlucoseNew:
         logger.info("update_cgm_data()")
         data = self.get_cgm_data(patient_id)
         last_record = self._get_last_record()
+        logger.debug(f"Last record: {last_record}")
         last_timestamp = last_record.timestamp
         max_id = last_record.id
         self._save_data(
@@ -86,18 +87,24 @@ class GlucoseNew:
         Format the data
         """
         logging.debug(f"format_cgm_data({last_timestamp}, {max_id}, {data})")
+        logger.debug(f"Fetched data: {data}")
         # Filter records the new ones must be at least one second apart
         filtered_records = [
             (record.get("Value"), record.get("Timestamp"))
             for record in data
             if (
-                datetime.strptime(record.get("Timestamp"), DATETIME_FORMAT)
+                datetime.strptime(record.get("Timestamp"), DATETIME_FORMAT).astimezone(
+                    timezone.utc
+                )
                 - last_timestamp
             ).total_seconds()
             > 0
         ]
         sorted_records = sorted(
-            filtered_records, key=lambda x: datetime.strptime(x[1], DATETIME_FORMAT)
+            filtered_records,
+            key=lambda x: datetime.strptime(x[1], DATETIME_FORMAT).astimezone(
+                timezone.utc
+            ),
         )
         records_to_add = [
             Glucose(

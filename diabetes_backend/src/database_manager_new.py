@@ -27,11 +27,10 @@ class DatabaseManager:
     def _get_default_last_record(self, table):
         self._validate_data_type(table)
         if type(table) is type(Glucose):
-            logger.debug("Returning glucose record")
             rec = Glucose(
                 id=1, timestamp=datetime.datetime(1970, 7, 11, 19, 45, 55), glucose=5.0
             )
-            logger.debug(rec)
+            logger.debug(f"Returning default glucose record: {rec}")
             return rec
         raise ValueError(
             f"Cannot get default last record as {table} is not a valid table"
@@ -41,27 +40,20 @@ class DatabaseManager:
         """Fetch the last record in the table"""
         logger.info(f"Getting last record of {table}")
         self._validate_data_type(table)
-        logger.debug("+++++++++++++++++++++++++++++++++")
         stmt = select(table).order_by(table.id.desc()).limit(1)
-        logger.debug("start")
         with Session(self.engine) as session:
-            rec = session.execute(stmt).first()
-            # TODO: There is only one record possible as limit 1
-            logger.debug(rec)
+            rec = session.execute(stmt).scalar()
             res = rec or self._get_default_last_record(table)
-        logger.debug("+++++++++++++++++++++++++++++++++")
         return res
 
     def get_records_between_timestamp(self, table, start_time, end_time):
         """Fetch the records in the table for the given date range"""
         logging.debug(f"get_last_record({table})")
         self._validate_data_type(table)
-        logger.debug(f"Retrieving data from {table}")
         stmt = select(table).where(
             table.timestamp <= end_time and start_time <= table.timestamp
         )
         with Session(self.engine) as session:
-            logger.debug("================")
             recs = session.execute(stmt)
             res = [rec for rec in recs]
         return res or []

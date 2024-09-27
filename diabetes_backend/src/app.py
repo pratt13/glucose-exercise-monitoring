@@ -209,7 +209,7 @@ scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300
 scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
 scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=300)
 # New cron
-scheduler.add_job(func=libre_cron, args=[glucose_new], trigger="interval", seconds=60)
+scheduler.add_job(func=libre_cron, args=[glucose_new], trigger="interval", seconds=300)
 
 
 with app.app_context():
