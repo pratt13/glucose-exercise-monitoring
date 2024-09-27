@@ -19,6 +19,7 @@ import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # SqlAlchemy
+from src.strava_new import StravaManager
 from src.glucose_new import GlucoseNew
 from src.database_manager_new import DatabaseManager
 from sqlalchemy import create_engine
@@ -49,7 +50,7 @@ from src.views.raw_data import RawData
 from src.database_manager import PostgresManager
 
 # SQL
-from src.database.glucose import Base
+from src.database.tables import Base
 
 # Environment variables - default to non-docker patterns
 ENV_FILE = os.getenv("ENV_FILE", ".env.local")
@@ -121,7 +122,8 @@ db_manager = DatabaseManager(engine)
 glucose_new = GlucoseNew(
     *load_libre_credentials_from_env(), AuthenticationManagement, db_manager
 )
-
+# Strava manager
+strava_new = StravaManager(*load_strava_credentials_from_env(), db_manager)
 
 # Add routing
 home = Home.as_view(
@@ -210,6 +212,7 @@ scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=3
 scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=300)
 # New cron
 scheduler.add_job(func=libre_cron, args=[glucose_new], trigger="interval", seconds=300)
+scheduler.add_job(func=strava_cron, args=[strava_new], trigger="interval", seconds=300)
 
 
 with app.app_context():

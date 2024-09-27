@@ -2,7 +2,7 @@ import datetime
 import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from src.database.glucose import Glucose
+from src.database.tables import Glucose, Strava
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +21,24 @@ class DatabaseManager:
             session.commit()
 
     def _validate_data_type(self, table):
-        if isinstance(table, Glucose):
+        if type(table) not in (type(Glucose), type(Strava)):
             raise ValueError(f"Invalid data_type {table}")
 
     def _get_default_last_record(self, table):
         self._validate_data_type(table)
-        if type(table) is type(Glucose):
+        if table == Glucose:
             rec = Glucose(
-                id=1, timestamp=datetime.datetime(1970, 7, 11, 19, 45, 55), glucose=5.0
+                id=1,
+                timestamp=datetime.datetime(1970, 7, 11, 19, 45, 55).astimezone(
+                    datetime.timezone.utc
+                ),
+                glucose=5.0,
             )
             logger.debug(f"Returning default glucose record: {rec}")
+            return rec
+        if table == Strava:
+            rec = Strava(start_time=datetime.datetime(1970, 7, 11, 19, 45, 55))
+            logger.debug(f"Returning default strava record: {rec}")
             return rec
         raise ValueError(
             f"Cannot get default last record as {table} is not a valid table"

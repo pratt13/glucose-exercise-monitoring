@@ -1,7 +1,7 @@
 import requests
 import logging
 from datetime import datetime, timezone
-from database.glucose import Glucose
+from src.database.tables import Glucose
 
 from src.constants import BASE_URL, HEADERS, DATETIME_FORMAT
 
@@ -86,8 +86,7 @@ class GlucoseNew:
         """
         Format the data
         """
-        logging.debug(f"format_cgm_data({last_timestamp}, {max_id}, {data})")
-        logger.debug(f"Fetched data: {data}")
+        logging.debug(f"format_cgm_data({last_timestamp}, {max_id}, {len(data)})")
         # Filter records the new ones must be at least one second apart
         filtered_records = [
             (record.get("Value"), record.get("Timestamp"))
