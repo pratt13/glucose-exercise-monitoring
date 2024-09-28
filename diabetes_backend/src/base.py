@@ -8,5 +8,5 @@ class Base(ABC):
         return ""
 
     @abstractmethod
-    def get_records(self, start_time, end_time):
+    def get_records_between_timestamp(self, start_time, end_time):
         pass

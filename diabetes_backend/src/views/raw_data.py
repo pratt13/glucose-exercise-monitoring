@@ -33,6 +33,6 @@ class RawData(BaseView):
         logger.debug(
             f"Getting {self.model.name} Records from {start_time} to {end_time}"
         )
-        res = self.model.get_records(start_time, end_time)
+        res = self.model.get_records_between_timestamp(start_time, end_time)
         logger.debug(f"Found {len(res)} in time range {start_time} - {end_time}")
         return res, 200

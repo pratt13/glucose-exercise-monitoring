@@ -1,7 +1,7 @@
 import datetime
 import logging
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, literal_column
 from src.database.tables import Glucose, Strava
 
 logger = logging.getLogger(__name__)
@@ -54,12 +54,12 @@ class DatabaseManager:
             res = rec or self._get_default_last_record(table)
         return res
 
-    def get_records_between_timestamp(self, table, start_time, end_time):
+    def get_records_between_timestamp(self, table, start, end, time_column="timestamp"):
         """Fetch the records in the table for the given date range"""
         logging.debug(f"get_last_record({table})")
         self._validate_data_type(table)
         stmt = select(table).where(
-            table.timestamp <= end_time and start_time <= table.timestamp
+            literal_column(time_column) <= end and start <= literal_column(time_column)
         )
         with Session(self.engine) as session:
             recs = session.execute(stmt)

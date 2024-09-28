@@ -27,6 +27,8 @@ class Strava(Base):
     start_time: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
     end_time: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
 
+    __time_field__ = "start_time"
+
     def __repr__(self) -> str:
         return f"Strava(id={self.id!r}, elapsed_time={self.elapsed_time!r}, activity_type={self.activity_type!r}, distance={self.distance!r})"
 
@@ -36,6 +38,8 @@ class Glucose(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     timestamp: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
     glucose: Mapped[float] = mapped_column(Float)
+
+    __time_field__ = "timestamp"
 
     def __repr__(self) -> str:
         return f"Glucose(id={self.id!r}, timestamp={self.timestamp!r}, glucose={self.glucose!r})"

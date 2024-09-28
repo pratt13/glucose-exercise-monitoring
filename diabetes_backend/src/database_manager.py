@@ -96,7 +96,7 @@ class PostgresManager:
 
         return res or self._get_default_last_record(data_type)
 
-    def get_records(self, data_type, start_time, end_time):
+    def get_records_between_timestamp(self, data_type, start_time, end_time):
         """Fetch the records in the table for the given date range"""
         logging.debug(f"get_last_record({data_type})")
         self._validate_data_type(data_type)

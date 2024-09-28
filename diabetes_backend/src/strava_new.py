@@ -138,7 +138,7 @@ class StravaManager:
             end_longitude=end_longitude,
         )
 
-    def get_records(self, start_time, end_time):
+    def get_records_between_timestamp(self, start_time, end_time):
         """
         Get the strava data between the end/start times
         """
@@ -147,7 +147,9 @@ class StravaManager:
 
     def _get_records(self, start_time, end_time):
         logger.debug(f"_get_records({start_time}, {end_time})")
-        return self.db_manager.get_records(Strava, start_time, end_time)
+        return self.db_manager.get_records_between_timestamp(
+            Strava, start_time, end_time, time_column="start_time"
+        )
 
     def update_data(self, records_per_page=1, page=1):
         """

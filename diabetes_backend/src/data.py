@@ -19,16 +19,16 @@ class Data(Base):
     def name(self):
         return "Strava-Libre"
 
-    def get_records(self, start_time, end_time):
+    def get_records_between_timestamp(self, start_time, end_time):
         """
         Get the strava libre data between the end/start times
         """
-        logger.debug(f"get_records({start_time}, {end_time})")
+        logger.debug(f"get_records_between_timestamp({start_time}, {end_time})")
         return self._get_records(start_time, end_time)
 
     def _get_records(self, start_time, end_time):
         logger.debug(f"_get_records({start_time}, {end_time})")
-        return self.db_manager.get_records(
+        return self.db_manager.get_records_between_timestamp(
             DATA_TYPES.STRAVA_LIBRE, start_time, end_time
         )
 
@@ -40,7 +40,9 @@ class Data(Base):
         logger.debug(
             f"Getting glucose records within interval {start_time} - {end_time} for {DATA_TYPES.STRAVA_LIBRE}"
         )
-        return self.db_manager.get_records(DATA_TYPES.LIBRE, start_time, end_time)
+        return self.db_manager.get_records_between_timestamp(
+            DATA_TYPES.LIBRE, start_time, end_time
+        )
 
     def combine_data(self):
         """

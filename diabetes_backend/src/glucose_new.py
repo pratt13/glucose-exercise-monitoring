@@ -52,7 +52,7 @@ class GlucoseNew:
         logger.debug("_get_last_record()")
         return self.db_manager.get_last_record(Glucose)
 
-    def get_records(self, start_time, end_time):
+    def get_records_between_timestamp(self, start_time, end_time):
         """
         Get all records from the database within the given time interval
         """

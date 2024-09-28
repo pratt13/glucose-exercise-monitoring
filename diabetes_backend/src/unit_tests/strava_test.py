@@ -244,7 +244,9 @@ class TestStrava(unittest.TestCase):
             self.code,
             mock_database_manager,
         )
-        result = strava_cls.get_records(self.start_date, self.end_date)
+        result = strava_cls.get_records_between_timestamp(
+            self.start_date, self.end_date
+        )
         self.assertEqual(
             result,
             [[1, 2, 3], [4, 5, 6]],

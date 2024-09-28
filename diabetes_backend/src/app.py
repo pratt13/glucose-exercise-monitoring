@@ -32,7 +32,6 @@ from src.auth import AuthenticationManagement
 from src.crons import data_cron, libre_cron, strava_cron
 from src.glucose import Glucose
 
-from src.strava import Strava
 from src.utils import (
     aggregate_glucose_data,
     aggregate_strava_data,
@@ -107,23 +106,18 @@ libre = Glucose(
     AuthenticationManagement,
     postgres_manager,
 )
+# Instantiate the new database manager
+db_manager = DatabaseManager(engine)
 # Instantiate the Strava class
-strava = Strava(
-    *load_strava_credentials_from_env(),
-    postgres_manager,
-)
+strava = StravaManager(*load_strava_credentials_from_env(), db_manager)
 # Instantiate the Data class
 data = Data(
     postgres_manager,
 )
-# Instantiate the new database manager
-db_manager = DatabaseManager(engine)
 # Instantiate the new glucose class
 glucose_new = GlucoseNew(
     *load_libre_credentials_from_env(), AuthenticationManagement, db_manager
 )
-# Strava manager
-strava_new = StravaManager(*load_strava_credentials_from_env(), db_manager)
 
 # Add routing
 home = Home.as_view(
@@ -208,11 +202,10 @@ app.add_url_rule("/glucose/days", view_func=GroupedLibreDayData)
 # Move these Cron Jobs to AWS lambdas or Azure equivalents
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
-scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
 scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=300)
 # New cron
 scheduler.add_job(func=libre_cron, args=[glucose_new], trigger="interval", seconds=300)
-scheduler.add_job(func=strava_cron, args=[strava_new], trigger="interval", seconds=300)
+scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
 
 
 with app.app_context():

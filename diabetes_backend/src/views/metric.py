@@ -37,7 +37,7 @@ class Metric(BaseView):
             excluded_keys=("start", "end"),
         )
         logger.debug(f"Getting average glucose level from {start_time} to {end_time}")
-        data = self.model.get_records(start_time, end_time)
+        data = self.model.get_records_between_timestamp(start_time, end_time)
         res = self.metric(data, **additional_request_args)
         logger.debug(f"Found {self.metric} in time range {start_time} - {end_time}")
         fmt_result = str(res) if isinstance(res, float) else res
