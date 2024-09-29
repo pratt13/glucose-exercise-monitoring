@@ -20,10 +20,6 @@ class BaseNew:
         Get the strava libre data between the end/start times
         """
         logger.debug(f"get_records_between_timestamp({start_time}, {end_time})")
-        return self._get_records(start_time, end_time)
-
-    def _get_records(self, start_time, end_time):
-        logger.debug(f"_get_records({start_time}, {end_time}) for {self.name}")
         return self.db_manager.get_records_between_timestamp(
             self.table, start_time, end_time
         )
