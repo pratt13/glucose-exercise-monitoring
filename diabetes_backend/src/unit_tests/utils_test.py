@@ -245,9 +245,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             compute_percentages(
                 [
-                    Glucose(
-                        timestamp=dt(2020, 1, 1, 12, 0, 0).astimezone(timezone.utc),
-                        glucose=6,
+                    (
+                        dt(2020, 1, 1, 12, 0, 0).astimezone(timezone.utc),
+                        6,
                     )
                 ]
             ),
@@ -263,9 +263,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             compute_percentages(
                 [
-                    Glucose(
-                        timestamp=dt(2020, 1, 1, 12, 0, 0).astimezone(timezone.utc),
-                        glucose=9.2,
+                    (
+                        dt(2020, 1, 1, 12, 0, 0).astimezone(timezone.utc),
+                        9.2,
                     )
                 ],
                 high=9,
@@ -282,9 +282,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             compute_percentages(
                 [
-                    Glucose(
-                        timestamp=dt(2020, 1, 1, 12, 0, 0).astimezone(timezone.utc),
-                        glucose=4.9,
+                    (
+                        dt(2020, 1, 1, 12, 0, 0).astimezone(timezone.utc),
+                        4.9,
                     )
                 ],
                 low=5,
@@ -302,37 +302,38 @@ class TestUtils(unittest.TestCase):
 
         # Data across 20 minutes
         data = [
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 0, 00).astimezone(timezone.utc), glucose=5
-            ),
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 4, 00).astimezone(timezone.utc), glucose=5
+            (dt(2024, 1, 1, 12, 0, 00).astimezone(timezone.utc), 5),
+            (
+                dt(2024, 1, 1, 12, 4, 00).astimezone(timezone.utc),
+                5,
             ),  # 4 minutes in target, 20% in target
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 6, 00).astimezone(timezone.utc), glucose=7
+            (
+                dt(2024, 1, 1, 12, 6, 00).astimezone(timezone.utc),
+                7,
             ),  # 2 minute increment, 10% in target
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 10, 00).astimezone(timezone.utc),
-                glucose=11,
+            (
+                dt(2024, 1, 1, 12, 10, 00).astimezone(timezone.utc),
+                11,
             ),  # 1 minute high (5%), 3 minutes in target (17.5%)
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 12, 00).astimezone(timezone.utc),
-                glucose=7,
+            (
+                dt(2024, 1, 1, 12, 12, 00).astimezone(timezone.utc),
+                7,
             ),  # 1/2 minute high (2.5%), 1.5 minutes in target (7.5%)
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 14, 00).astimezone(timezone.utc),
-                glucose=3,
+            (
+                dt(2024, 1, 1, 12, 14, 00).astimezone(timezone.utc),
+                3,
             ),  # 3/2 minute in target (7.5%) 1/2 minute low (2.5%)
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 16, 00).astimezone(timezone.utc), glucose=3
+            (
+                dt(2024, 1, 1, 12, 16, 00).astimezone(timezone.utc),
+                3,
             ),  # 2 minutes low (10%)
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 18, 00).astimezone(timezone.utc),
-                glucose=5,
+            (
+                dt(2024, 1, 1, 12, 18, 00).astimezone(timezone.utc),
+                5,
             ),  # 1 minute low (5%) 1 minute in target (5%)
-            Glucose(
-                timestamp=dt(2024, 1, 1, 12, 20, 00).astimezone(timezone.utc),
-                glucose=3,
+            (
+                dt(2024, 1, 1, 12, 20, 00).astimezone(timezone.utc),
+                3,
             ),  # 1 minute low (5%) 1 minute in target (5%)
         ]
         self.assertEqual(

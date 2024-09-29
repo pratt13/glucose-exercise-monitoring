@@ -274,6 +274,7 @@ def compute_percentages(  # noqa: C901
     """
     Computing the percentage of time below/above a threshold
     Assumes the last record and the first record is the span of the window
+    The data is a list of timestamp,glucose tuples
     """
     if high <= low:
         raise ValueError(f"Cannot specify the high value {high} <= low value {low}")
@@ -288,7 +289,7 @@ def compute_percentages(  # noqa: C901
             "numberOfLows": None,
         }
     elif len(data) == 1:
-        glucose = data[0].glucose
+        _, glucose = data[0]
         is_low = glucose < low
         is_high = glucose > high
         return {
@@ -299,7 +300,7 @@ def compute_percentages(  # noqa: C901
             "numberOfLows": int(is_low),
         }
 
-    timestamp_list, glucose_list = zip(*[(d.timestamp, d.glucose) for d in data])
+    timestamp_list, glucose_list = zip(*data)
 
     # Running count for the seconds low/high
     total_high_seconds = 0
