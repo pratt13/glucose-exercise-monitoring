@@ -574,7 +574,6 @@ class TestUtils(unittest.TestCase):
                 start_time=dt(2024, 1, 3, 13, 30, 0), activity_type="RUN", distance=5
             ),
         ]
-        self.maxDiff = None
         self.assertDictEqual(
             run_sum_strava_data(data),
             {

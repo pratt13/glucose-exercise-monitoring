@@ -184,9 +184,6 @@ def run_sum_strava_data(data):
 
     """
     logger.debug("run_sum_strava_data()")
-    logger.debug("++++++++++++++++++++")
-    logger.debug(data)
-    logger.debug("+++++++1111+++++++++++++")
     ordered_data = sorted(data, key=lambda x: x.start_time)
     timestamp_list = list(map(lambda x: x.start_time, ordered_data))
     activity_list = list(map(lambda x: x.activity_type, ordered_data))
@@ -216,7 +213,7 @@ def run_sum_strava_data(data):
                 {
                     "timestamp": row["timestamp"].to_pydatetime(),
                     "distance": row["distance"],
-                    "": row["total_distance"],
+                    "totalDistance": row["total_distance"],
                 }
                 for _idx, row in df.loc[df["activity"] == key].iterrows()
             ],
@@ -627,9 +624,4 @@ def glucose_raw_data(data):
 
 
 def strava_raw_data(data):
-    logger.debug("=============")
-    for row in data:
-        logger.debug(row)
-        logger.debug(dict(row))
-        break
     return sorted([dict(rec) for rec in data], key=lambda x: x.get("start_time"))
