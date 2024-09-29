@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from src.constants import STRAVA_DATETIME, TIME_FMT
 import pandas as pd
 from itertools import groupby
@@ -190,7 +190,7 @@ def run_sum_strava_data(data):
     ordered_data = sorted(data, key=lambda x: x.start_time)
     timestamp_list = list(map(lambda x: x.start_time, ordered_data))
     activity_list = list(map(lambda x: x.activity_type, ordered_data))
-    distance_list = list(map(lambda x: float(x.distance), ordered_data))
+    distance_list = list(map(lambda x: x.distance, ordered_data))
 
     df = pd.DataFrame(
         {
@@ -291,7 +291,7 @@ def compute_percentages(  # noqa: C901
             "numberOfLows": None,
         }
     elif len(data) == 1:
-        _, glucose = data[0]
+        glucose = data[0].glucose
         is_low = glucose < low
         is_high = glucose > high
         return {
@@ -302,7 +302,7 @@ def compute_percentages(  # noqa: C901
             "numberOfLows": int(is_low),
         }
 
-    timestamp_list, glucose_list = zip(*data)
+    timestamp_list, glucose_list = zip(*[(d.timestamp, d.glucose) for d in data])
 
     # Running count for the seconds low/high
     total_high_seconds = 0
@@ -517,7 +517,7 @@ def populate_glucose_data(timestamp_list, glucose_list, interval_in_mins=5):
     # Find the intervals going to be defined
     # Then populate the boundaries
     intervals = [
-        d.to_pydatetime().astimezone(datetime.timezone.utc)
+        d.to_pydatetime().astimezone(timezone.utc)
         for d in pd.DataFrame(
             {
                 "timestamp": [timestamp_list[0], timestamp_list[-1]],
@@ -577,7 +577,7 @@ def compute_y_value_with_x_time(pos1, pos2, target_x_value_mins=5):
     if y1 == y2:
         # Same value, zero gradient
         return [new_x, y1]
-    epoch_time = datetime(1970, 1, 1, 0, 0, 0)
+    epoch_time = datetime(1970, 1, 1, 0, 0, 0).astimezone(timezone.utc)
     m = (y2 - y1) / ((x2 - x1).total_seconds())
     c = y2 - (m * (x2 - epoch_time)).total_seconds()
     new_x = x1 + timedelta(minutes=target_x_value_mins)
@@ -607,7 +607,7 @@ def compute_x_time_value(pos1, pos2, target_y_value):
 def group_glucose_data_by_day(data):
     ordered_data = sorted(data, key=lambda x: x.timestamp)
     timestamp_list = list(map(lambda x: x.timestamp, ordered_data))
-    glucose_list = list(map(lambda x: float(x.glucose), ordered_data))
+    glucose_list = list(map(lambda x: x.glucose, ordered_data))
 
     return {
         convert_ts_to_str(group, "%Y-%m-%d"): [

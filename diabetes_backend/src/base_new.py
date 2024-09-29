@@ -4,6 +4,9 @@ logger = logging.getLogger(__name__)
 
 
 class BaseNew:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+
     @property
     def name(self):
         raise NotImplementedError("Not implemented class name")
@@ -32,5 +35,5 @@ class BaseNew:
     def _save_data(self, records_to_save):
         logger.info(f"Saving {len(records_to_save)} to {self.name}")
         if records_to_save:
-            self.db_manager.save_data(records_to_save, self.table)
+            self.db_manager.save_data(records_to_save)
         logger.info(f"Successfully saved {len(records_to_save)} to {self.name}")

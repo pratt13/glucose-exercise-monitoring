@@ -1,6 +1,7 @@
 import requests
 import logging
 from datetime import datetime, timezone
+from src.base_new import BaseNew
 from src.database.tables import Glucose
 
 from src.constants import BASE_URL, HEADERS, DATETIME_FORMAT
@@ -9,22 +10,25 @@ from src.constants import BASE_URL, HEADERS, DATETIME_FORMAT
 logger = logging.getLogger(__name__)
 
 
-class GlucoseManager:
+class GlucoseManager(BaseNew):
     """
     Simple class to poll data from the LibreLinkUpApp
     """
 
     def __init__(self, email, password, auth, db_manager):
-        logger.debug(f"Glucose email: {email}")
+        super().__init__(db_manager)
         # Initialise auth
         self.auth_manager = auth(email, password)
         self.email = email
         self.password = password
-        self.db_manager = db_manager
 
     @property
     def name(self):
         return "GlucoseManager"
+
+    @property
+    def table(self):
+        return Glucose
 
     def get_patient_ids(self):
         """
@@ -49,28 +53,28 @@ class GlucoseManager:
         response.raise_for_status()
         return response.json()
 
-    def _get_last_record(self):
-        """
-        Get last record
-        """
-        logger.debug("_get_last_record()")
-        return self.db_manager.get_last_record(Glucose)
+    # def _get_last_record(self):
+    #     """
+    #     Get last record
+    #     """
+    #     logger.debug("_get_last_record()")
+    #     return self.db_manager.get_last_record(Glucose)
 
-    def get_records_between_timestamp(self, start_time, end_time):
-        """
-        Get all records from the database within the given time interval
-        """
-        logger.debug(f"get_records({start_time}, {end_time})")
-        return self.db_manager.get_records_between_timestamp(
-            Glucose, start_time, end_time, time_column="timestamp"
-        )
+    # def get_records_between_timestamp(self, start_time, end_time):
+    #     """
+    #     Get all records from the database within the given time interval
+    #     """
+    #     logger.debug(f"get_records({start_time}, {end_time})")
+    #     return self.db_manager.get_records_between_timestamp(
+    #         Glucose, start_time, end_time, time_column="timestamp"
+    #     )
 
-    def _save_data(self, data):
-        """
-        Save data
-        """
-        logger.debug(f"_save_data(): {data}")
-        self.db_manager.save_data(data)
+    # def _save_data(self, data):
+    #     """
+    #     Save data
+    #     """
+    #     logger.debug(f"_save_data(): {data}")
+    #     self.db_manager.save_data(data)
 
     def update_cgm_data(self, patient_id):
         logger.info("update_cgm_data()")
