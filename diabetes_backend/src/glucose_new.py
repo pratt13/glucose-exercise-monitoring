@@ -9,7 +9,7 @@ from src.constants import BASE_URL, HEADERS, DATETIME_FORMAT
 logger = logging.getLogger(__name__)
 
 
-class GlucoseNew:
+class GlucoseManager:
     """
     Simple class to poll data from the LibreLinkUpApp
     """
@@ -21,6 +21,10 @@ class GlucoseNew:
         self.email = email
         self.password = password
         self.db_manager = db_manager
+
+    @property
+    def name(self):
+        return "GlucoseManager"
 
     def get_patient_ids(self):
         """
@@ -58,7 +62,7 @@ class GlucoseNew:
         """
         logger.debug(f"get_records({start_time}, {end_time})")
         return self.db_manager.get_records_between_timestamp(
-            Glucose, start_time, end_time
+            Glucose, start_time, end_time, time_column="timestamp"
         )
 
     def _save_data(self, data):

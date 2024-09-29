@@ -59,7 +59,7 @@ def q90(x):
     return x.quantile(0.9)
 
 
-def glucose_quartile_data(data, date_index, glucose_index):
+def glucose_quartile_data(data):
     """
     Bucket the data into intervals
     Compute the quartile data
@@ -69,9 +69,9 @@ def glucose_quartile_data(data, date_index, glucose_index):
     """
     logger.debug("glucose_quartile_data()")
     timestamps = list(
-        map(lambda x: convert_time_to_str(x[date_index], STRAVA_DATETIME), data)
+        map(lambda x: convert_time_to_str(x.timestamp, STRAVA_DATETIME), data)
     )
-    glucose_list = list(map(lambda x: float(x[glucose_index]), data))
+    glucose_list = list(map(lambda x: float(x.glucose), data))
 
     df = pd.DataFrame({"time": timestamps, "raw": glucose_list})
     # Convert to dt and replace all the yyy/mm/dd with the same as we only want hours
@@ -100,16 +100,16 @@ def glucose_quartile_data(data, date_index, glucose_index):
     }
 
 
-def aggregate_glucose_data(data, date_index, glucose_index, bucket="15min"):
+def aggregate_glucose_data(data, bucket="15min"):
     """
     Bucket the data into intervals, default 15minute
     Compute the average
     Variance
     """
     timestamps = list(
-        map(lambda x: convert_time_to_str(x[date_index], STRAVA_DATETIME), data)
+        map(lambda x: convert_time_to_str(x.timestamp, STRAVA_DATETIME), data)
     )
-    glucose_list = list(map(lambda x: float(x[glucose_index]), data))
+    glucose_list = list(map(lambda x: float(x.glucose), data))
 
     df = pd.DataFrame({"time": timestamps, "raw": glucose_list})
     # COnvert to dt and replace all the yyy/mm/dd with the same as we only want hours
@@ -169,7 +169,7 @@ def aggregate_strava_data(data, distance_index, activity_index):
     }
 
 
-def run_sum_strava_data(data, timestamp_index, distance_index, activity_index):
+def run_sum_strava_data(data):
     """
     Compute the running distance for the different activities across a time window
 
@@ -183,10 +183,14 @@ def run_sum_strava_data(data, timestamp_index, distance_index, activity_index):
         5   2000-07-01 5:00:00     SWIM       5.0                     5.0                  1
 
     """
-    ordered_data = sorted(data, key=lambda x: x[timestamp_index])
-    timestamp_list = list(map(lambda x: x[timestamp_index], ordered_data))
-    activity_list = list(map(lambda x: x[activity_index], ordered_data))
-    distance_list = list(map(lambda x: float(x[distance_index]), ordered_data))
+    logger.debug("run_sum_strava_data()")
+    logger.debug("++++++++++++++++++++")
+    logger.debug(data)
+    logger.debug("+++++++1111+++++++++++++")
+    ordered_data = sorted(data, key=lambda x: x.start_time)
+    timestamp_list = list(map(lambda x: x.start_time, ordered_data))
+    activity_list = list(map(lambda x: x.activity_type, ordered_data))
+    distance_list = list(map(lambda x: float(x.distance), ordered_data))
 
     df = pd.DataFrame(
         {
@@ -222,7 +226,7 @@ def run_sum_strava_data(data, timestamp_index, distance_index, activity_index):
     }
 
 
-def libre_hba1c(data, timestamp_index, glucose_index):
+def libre_hba1c(data):
     """
     Computing the HBA1C
     """
@@ -232,9 +236,9 @@ def libre_hba1c(data, timestamp_index, glucose_index):
         return {"hBA1C": None}
 
     # Order (in time order) and extract the data
-    ordered_data = sorted(data, key=lambda x: x[timestamp_index])
-    timestamp_list = list(map(lambda x: x[timestamp_index], ordered_data))
-    glucose_list = list(map(lambda x: float(x[glucose_index]), ordered_data))
+    ordered_data = sorted(data, key=lambda x: x.timestamp)
+    timestamp_list = list(map(lambda x: x.timestamp, ordered_data))
+    glucose_list = list(map(lambda x: float(x.glucose), ordered_data))
 
     # Running count for the seconds low/high
     total_seconds = (timestamp_list[-1] - timestamp_list[0]).total_seconds()
@@ -380,9 +384,7 @@ def compute_percentages(  # noqa: C901
     }
 
 
-def libre_extremes_in_buckets(
-    data, timestamp_index, glucose_index, high=10, low=4, bucket="15min"
-):
+def libre_extremes_in_buckets(data, high=10, low=4, bucket="15min"):
     """
     Computing in time buckets the time in target and number of lows
     """
@@ -391,9 +393,9 @@ def libre_extremes_in_buckets(
     )
     logger.debug(f"Checking {len(data)} records")
     # Order (in time order) and extract the data
-    ordered_data = sorted(data, key=lambda x: x[timestamp_index])
-    timestamp_list = list(map(lambda x: x[timestamp_index], ordered_data))
-    glucose_list = list(map(lambda x: float(x[glucose_index]), ordered_data))
+    ordered_data = sorted(data, key=lambda x: x.timestamp)
+    timestamp_list = list(map(lambda x: x.timestamp, ordered_data))
+    glucose_list = list(map(lambda x: float(x.glucose), ordered_data))
 
     # Find the total seconds being computed
     total_seconds = (timestamp_list[-1] - timestamp_list[0]).total_seconds()
@@ -445,16 +447,12 @@ def libre_extremes_in_buckets(
     return records
 
 
-def libre_data_bucketed_day_overview(
-    data, timestamp_index, glucose_index, high=10, low=4, bucket="15min"
-):
+def libre_data_bucketed_day_overview(data, high=10, low=4, bucket="15min"):
     """
     Bucket the data in intervals and compute metrics upon it
     Then take those day buckets and combine them, so monday 12-13 is joined with tuesday 12-13 etc
     """
-    records = libre_extremes_in_buckets(
-        data, timestamp_index, glucose_index, high=high, low=low, bucket=bucket
-    )
+    records = libre_extremes_in_buckets(data, high=high, low=low, bucket=bucket)
 
     # Replace the year of each time stamp
     fmt_records = sorted(
@@ -519,7 +517,7 @@ def populate_glucose_data(timestamp_list, glucose_list, interval_in_mins=5):
     # Find the intervals going to be defined
     # Then populate the boundaries
     intervals = [
-        d.to_pydatetime()
+        d.to_pydatetime().astimezone(datetime.timezone.utc)
         for d in pd.DataFrame(
             {
                 "timestamp": [timestamp_list[0], timestamp_list[-1]],
@@ -543,8 +541,6 @@ def populate_glucose_data(timestamp_list, glucose_list, interval_in_mins=5):
 
             # Loop over the intervals to handle gaps
             while (timestamp - current_interval).total_seconds() > 0:
-                print("Current interval")
-                print(current_interval)
                 _, new_y_data_point = compute_y_value_with_x_time(
                     (last_timestamp, last_glucose),
                     (timestamp, glucose),
@@ -608,10 +604,10 @@ def compute_x_time_value(pos1, pos2, target_y_value):
     return start_of_x2 + timedelta(seconds=time_in_seconds_since_day_start)
 
 
-def group_glucose_data_by_day(data, timestamp_index, glucose_index):
-    ordered_data = sorted(data, key=lambda x: x[timestamp_index])
-    timestamp_list = list(map(lambda x: x[timestamp_index], ordered_data))
-    glucose_list = list(map(lambda x: float(x[glucose_index]), ordered_data))
+def group_glucose_data_by_day(data):
+    ordered_data = sorted(data, key=lambda x: x.timestamp)
+    timestamp_list = list(map(lambda x: x.timestamp, ordered_data))
+    glucose_list = list(map(lambda x: float(x.glucose), ordered_data))
 
     return {
         convert_ts_to_str(group, "%Y-%m-%d"): [
@@ -621,3 +617,19 @@ def group_glucose_data_by_day(data, timestamp_index, glucose_index):
             list(zip(timestamp_list, glucose_list)), key=lambda x: x[0].date()
         )
     }
+
+
+def glucose_raw_data(data):
+    return sorted(
+        [{"timestamp": rec.timestamp, "glucose": rec.glucose} for rec in data],
+        key=lambda x: x.get("timestamp"),
+    )
+
+
+def strava_raw_data(data):
+    logger.debug("=============")
+    for row in data:
+        logger.debug(row)
+        logger.debug(dict(row))
+        break
+    return sorted([dict(rec) for rec in data], key=lambda x: x.get("start_time"))

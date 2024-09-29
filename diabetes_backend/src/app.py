@@ -19,8 +19,8 @@ import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # SqlAlchemy
-from src.strava_new import StravaManager
-from src.glucose_new import GlucoseNew
+from src.strava import StravaManager
+from src.glucose_new import GlucoseManager
 from src.database_manager_new import DatabaseManager
 from sqlalchemy import create_engine
 
@@ -34,8 +34,8 @@ from src.glucose import Glucose
 
 from src.utils import (
     aggregate_glucose_data,
-    aggregate_strava_data,
     glucose_quartile_data,
+    glucose_raw_data,
     group_glucose_data_by_day,
     libre_data_bucketed_day_overview,
     libre_extremes_in_buckets,
@@ -43,6 +43,7 @@ from src.utils import (
     load_libre_credentials_from_env,
     load_strava_credentials_from_env,
     run_sum_strava_data,
+    strava_raw_data,
 )
 from src.schemas import TimeIntervalSchema, TimeIntervalWithBucketSchema
 from src.views.raw_data import RawData
@@ -115,7 +116,7 @@ data = Data(
     postgres_manager,
 )
 # Instantiate the new glucose class
-glucose_new = GlucoseNew(
+glucose_manager = GlucoseManager(
     *load_libre_credentials_from_env(), AuthenticationManagement, db_manager
 )
 
@@ -124,15 +125,17 @@ home = Home.as_view(
     "home",
 )
 app.add_url_rule("/", view_func=home)
-GlucoseRecords = RawData.as_view(
+GlucoseRecords = Metric.as_view(
     "glucose",
     TimeIntervalSchema(),
-    libre,
+    glucose_manager,
+    lambda x: glucose_raw_data(x),
 )
-StravaRecords = RawData.as_view(
+StravaRecords = Metric.as_view(
     "strava",
     TimeIntervalSchema(),
     strava,
+    lambda x: strava_raw_data(x),
 )
 StravaLibreRecords = RawData.as_view(
     "strava-libre",
@@ -142,50 +145,50 @@ StravaLibreRecords = RawData.as_view(
 Hba1c = Metric.as_view(
     "hba1c",
     TimeIntervalSchema(),
-    libre,
-    lambda x: libre_hba1c(x, 2, 1),
+    glucose_manager,
+    lambda x: libre_hba1c(x),
 )
 LibrePercentage = Metric.as_view(
     "libre-percentage",
     TimeIntervalSchema(),
-    libre,
-    lambda x: libre_extremes_in_buckets(x, 2, 1),
+    glucose_manager,
+    lambda x: libre_extremes_in_buckets(x),
 )
 LibrePercentageDayOverview = Metric.as_view(
     "libre-percentage-day-overview",
     TimeIntervalWithBucketSchema(),
-    libre,
-    lambda x, **kwargs: libre_data_bucketed_day_overview(x, 2, 1, **kwargs),
+    glucose_manager,
+    lambda x, **kwargs: libre_data_bucketed_day_overview(x, **kwargs),
 )
 Aggregate15min = Metric.as_view(
     "test",
     TimeIntervalSchema(),
-    libre,
-    lambda x, **kwargs: aggregate_glucose_data(x, 2, 1, **kwargs),
+    glucose_manager,
+    lambda x, **kwargs: aggregate_glucose_data(x, **kwargs),
 )
 StravaSummary = Metric.as_view(
     "strava-summary",
     TimeIntervalSchema(),
     strava,
-    lambda x: run_sum_strava_data(x, 5, 1, 2),
+    lambda x: run_sum_strava_data(x),
 )
 StravaLibreSummary = Metric.as_view(
     "strava-libre-summary",
     TimeIntervalSchema(),
     data,
-    lambda x: glucose_quartile_data(x, 8, 3),
+    lambda x: glucose_quartile_data(x),
 )
 LibreQuartileSummary = Metric.as_view(
     "libre-quartile-data",
     TimeIntervalSchema(),
-    libre,
-    lambda x: glucose_quartile_data(x, 2, 1),
+    glucose_manager,
+    lambda x: glucose_quartile_data(x),
 )
 GroupedLibreDayData = Metric.as_view(
     "libre-grouped-day-data",
     TimeIntervalSchema(),
-    libre,
-    lambda x: group_glucose_data_by_day(x, 2, 1),
+    glucose_manager,
+    lambda x: group_glucose_data_by_day(x),
 )
 app.add_url_rule("/glucose/", view_func=GlucoseRecords)
 app.add_url_rule("/strava/", view_func=StravaRecords)
@@ -204,7 +207,9 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=libre_cron, args=[libre], trigger="interval", seconds=300)
 scheduler.add_job(func=data_cron, args=[data], trigger="interval", seconds=300)
 # New cron
-scheduler.add_job(func=libre_cron, args=[glucose_new], trigger="interval", seconds=300)
+scheduler.add_job(
+    func=libre_cron, args=[glucose_manager], trigger="interval", seconds=300
+)
 scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
 
 

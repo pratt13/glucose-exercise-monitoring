@@ -2,7 +2,7 @@ import datetime
 import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select, literal_column
-from src.database.tables import Glucose, Strava
+from src.database.tables import Glucose, Strava, GlucoseExercise
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +10,10 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     def __init__(self, engine):
         self.engine = engine
+
+    @property
+    def name(self):
+        return "DatabaseManager"
 
     def save_data(self, data):
         """
@@ -21,7 +25,7 @@ class DatabaseManager:
             session.commit()
 
     def _validate_data_type(self, table):
-        if type(table) not in (type(Glucose), type(Strava)):
+        if table not in (Glucose, Strava, GlucoseExercise):
             raise ValueError(f"Invalid data_type {table}")
 
     def _get_default_last_record(self, table):
@@ -36,10 +40,12 @@ class DatabaseManager:
             )
             logger.debug(f"Returning default glucose record: {rec}")
             return rec
-        if table == Strava:
+        elif table == Strava:
             rec = Strava(start_time=datetime.datetime(1970, 7, 11, 19, 45, 55))
             logger.debug(f"Returning default strava record: {rec}")
             return rec
+        elif table == GlucoseExercise:
+            pass
         raise ValueError(
             f"Cannot get default last record as {table} is not a valid table"
         )
@@ -56,14 +62,15 @@ class DatabaseManager:
 
     def get_records_between_timestamp(self, table, start, end, time_column="timestamp"):
         """Fetch the records in the table for the given date range"""
-        logging.debug(f"get_last_record({table})")
+        logging.debug(f"get_records_between_timestamp({start},{end},{time_column})")
         self._validate_data_type(table)
         stmt = select(table).where(
-            literal_column(time_column) <= end and start <= literal_column(time_column)
+            (literal_column(time_column) <= end)
+            & (start <= literal_column(time_column))
         )
         with Session(self.engine) as session:
             recs = session.execute(stmt)
-            res = [rec for rec in recs]
+            res = [rec[0] for rec in recs]
         return res or []
 
     def get_filtered_by_id_records(self, table, id):

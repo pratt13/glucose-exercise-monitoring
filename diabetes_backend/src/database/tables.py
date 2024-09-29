@@ -3,7 +3,7 @@ Base ORM class
 """
 import datetime
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import DateTime, Float, String
+from sqlalchemy import DateTime, Float, String, BigInteger
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import Mapped
 
@@ -15,7 +15,7 @@ class Base(DeclarativeBase):
 class Strava(Base):
     __tablename__ = "strava"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     start_latitude: Mapped[float] = mapped_column(Float)
     end_latitude: Mapped[float] = mapped_column(Float)
     start_longitude: Mapped[float] = mapped_column(Float)
