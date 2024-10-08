@@ -33,10 +33,15 @@ class DATA_TYPES:
 
     STRAVA = "STRAVA"
     LIBRE = "LIBRE"
+    STRAVA_LIBRE = "STRAVA_LIBRE"
 
 
 class TABLE_SCHEMA:
-    NAME = {DATA_TYPES.STRAVA: "activities", DATA_TYPES.LIBRE: "glucose_times"}
+    NAME = {
+        DATA_TYPES.STRAVA: "activities",
+        DATA_TYPES.LIBRE: "glucose_times",
+        DATA_TYPES.STRAVA_LIBRE: "strava_libre",
+    }
     COLUMNS = {
         DATA_TYPES.STRAVA: [
             "id",
@@ -52,10 +57,35 @@ class TABLE_SCHEMA:
             "end_longitude",
         ],
         DATA_TYPES.LIBRE: ["id", "glucose", "timestamp"],
+        DATA_TYPES.STRAVA_LIBRE: [
+            "id",
+            "strava_id",
+            "libre_id",
+            "glucose",
+            "timestamp",
+            "activity_start",
+            "activity_end",
+            "activity_type",
+            "seconds_since_start",
+        ],
     }
     SEARCH_COLUMNS = {
         DATA_TYPES.STRAVA: ["start_time"],
         DATA_TYPES.LIBRE: ["timestamp", "id"],
+        DATA_TYPES.STRAVA_LIBRE: ["timestamp", "id", "strava_id"],
     }
-    TIME_FIELD = {DATA_TYPES.STRAVA: "start_time", DATA_TYPES.LIBRE: "timestamp"}
-    ORDER_BY = {DATA_TYPES.STRAVA: "id", DATA_TYPES.LIBRE: "timestamp"}
+    INDEX_FIELD = {
+        DATA_TYPES.STRAVA: "id",
+        DATA_TYPES.LIBRE: "id",
+        DATA_TYPES.STRAVA_LIBRE: "id",
+    }
+    TIME_FIELD = {
+        DATA_TYPES.STRAVA: "start_time",
+        DATA_TYPES.LIBRE: "timestamp",
+        DATA_TYPES.STRAVA_LIBRE: "timestamp",
+    }
+    ORDER_BY = {
+        DATA_TYPES.STRAVA: "id",
+        DATA_TYPES.LIBRE: "timestamp",
+        DATA_TYPES.STRAVA_LIBRE: "timestamp",
+    }

@@ -20,7 +20,17 @@
 - [ ] Swagger
 - [ ] Terraform and cloud
 - [ ] Correct Flask docker image
-- [ ] Fix stava tokens
+- [X] Fix strava tokens
 - [ ] New average endpoint
 - [ ] New % in target endpoint
 - [ ] New % of lows in hour intervals (24 column bar chart)
+- [X] Return dict instead of tuples from db.
+- [ ] Need to omit overlapping exercises (run/walk that are less than 60 minutes apart)
+- [ ] Dynamic interval times.
+- [ ] Change timestamp_since_start = (current_timestamp - start_time).total_seconds() to use activity_start_time for -ive numbers
+- [ ] Mark data how far to last and next activity
+- [ ] Average highs/lows variance on day during exercise vs no exercise
+- [ ] Variance on day during exercise vs no exercise
+- [ ] Lows in the evening exercise vs not
+- [ ] Endpoint to list endpoints
+- [ ] Endpoint for permissions

@@ -1,2 +1,3 @@
 back-venv/
 **/__pycache__/
+.coverage
