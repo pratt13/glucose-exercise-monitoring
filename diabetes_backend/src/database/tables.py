@@ -70,4 +70,4 @@ class GlucoseExercise(Base):
     __time_field__ = "timestamp"
 
     def __repr__(self) -> str:
-        return f"GlucoseExercise(id={self.id!r}, timestamp={self.timestamp!r}, activity_type={self.activity_type!r}, distance={self.distance!r}, glucose_id={self.glucose_id!r}, glucose_id={self.strava_id!r})"
+        return f"GlucoseExercise(id={self.id!r}, timestamp={self.timestamp!r}, activity_type={self.activity_type!r}, distance={self.distance!r}, glucose_id={self.glucose_id!r}, strava_id={self.strava_id!r})"

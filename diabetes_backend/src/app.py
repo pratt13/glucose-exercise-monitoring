@@ -195,7 +195,7 @@ scheduler.add_job(
     func=libre_cron, args=[glucose_manager], trigger="interval", seconds=300
 )
 scheduler.add_job(func=strava_cron, args=[strava], trigger="interval", seconds=300)
-scheduler.add_job(func=data_cron, args=[data_manager], trigger="interval", seconds=30)
+scheduler.add_job(func=data_cron, args=[data_manager], trigger="interval", seconds=300)
 
 
 with app.app_context():

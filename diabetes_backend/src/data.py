@@ -39,7 +39,6 @@ class DataManager(Base):
         # TODO: Need to omit overlapping exercises (run/walk that are less than 60 minutes apart)
         """
         logger.info("*" * 50 + "\n" + " " * 20 + "combine_data()" + " " * 20 + "*" * 50)
-        new_records = []
         # Get last record in the database
         last_record = self._get_last_record()
         last_id = last_record.id
@@ -56,13 +55,14 @@ class DataManager(Base):
                 unchecked_strava_record.end_time + timedelta(seconds=3600),
             )
             for libre_record in libre_records:
-                # ' Would be negative if activity_start_time instead of start time
+                print(libre_record)
+                # Would be negative if activity_start_time instead of start time
                 # but we just presume for now offset is always 60mins. More robust to
                 # do -negatives from the start time though.'
                 timestamp_since_start = (
                     libre_record.timestamp - unchecked_strava_record.start_time
                 ).total_seconds()
-                new_records.append(
+                new_record = [
                     GlucoseExercise(
                         id=new_entry_id,
                         strava_id=unchecked_strava_record.id,
@@ -75,7 +75,10 @@ class DataManager(Base):
                         activity_type=unchecked_strava_record.activity_type,
                         seconds_since_start=timestamp_since_start,
                     )
-                )
+                ]
                 # Increment index
                 new_entry_id += 1
-        self._save_data(new_records)
+                # TODO: HACK
+                # Save record one by one - cannot reference the same records in single
+                # session.
+                self._save_data(new_record)

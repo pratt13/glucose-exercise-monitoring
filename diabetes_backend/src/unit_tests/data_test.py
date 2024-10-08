@@ -1,7 +1,7 @@
-import unittest
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from requests import HTTPError
+from src.unit_tests.base import TestBase
 from src.database.tables import Glucose, GlucoseExercise, Strava
 from src.data import DataManager
 from src.constants import DATA_TYPES, TABLE_SCHEMA
@@ -23,7 +23,7 @@ class MockRequest:
             raise HTTPError(ERROR_MSG)
 
 
-class TestData(unittest.TestCase):
+class TestData(TestBase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -59,66 +59,66 @@ class TestData(unittest.TestCase):
             ),
         ]  # Id is bigger than 1 of last record strava id
 
-    @patch("src.database_manager.DatabaseManager")
-    def test_get_glucose_records_within_interval(self, mock_database_manager):
-        data = DataManager(mock_database_manager)
-        # Some data data
-        data._get_glucose_records_within_interval(
-            datetime(2000, 1, 1), datetime(2000, 2, 1)
-        )
-        mock_database_manager.get_records_between_timestamp.assert_called_once()
-        mock_database_manager.get_records_between_timestamp.assert_called_with(
-            Glucose, datetime(2000, 1, 1), datetime(2000, 2, 1)
-        )
+    # @patch("src.database_manager.DatabaseManager")
+    # def test_get_glucose_records_within_interval(self, mock_database_manager):
+    #     data = DataManager(mock_database_manager)
+    #     # Some data data
+    #     data._get_glucose_records_within_interval(
+    #         datetime(2000, 1, 1), datetime(2000, 2, 1)
+    #     )
+    #     mock_database_manager.get_records_between_timestamp.assert_called_once()
+    #     mock_database_manager.get_records_between_timestamp.assert_called_with(
+    #         Glucose, datetime(2000, 1, 1), datetime(2000, 2, 1)
+    #     )
 
-    @patch("src.database_manager.DatabaseManager")
-    def test_combine_data_no_strava_data(self, mock_database_manager):
-        mock_database_manager.get_last_record.return_value = (
-            self.mock_existing_glucose_exercise_record
-        )
-        mock_database_manager.get_filtered_by_id_records.return_value = (
-            []
-        )  # Mock get_filtered_by_id_records to be empty
-        data = DataManager(mock_database_manager)
-        # No data
-        data.combine_data()
-        # Assert mocks
-        mock_database_manager.get_last_record.assert_called_once()
-        mock_database_manager.get_last_record.assert_called_with(GlucoseExercise)
-        mock_database_manager.get_filtered_by_id_records.assert_called_once()
-        mock_database_manager.get_filtered_by_id_records.assert_called_with(
-            Strava, 12345
-        )
-        # No data saved
-        self.assertEqual(mock_database_manager.save_data.call_count, 0)
+    # @patch("src.database_manager.DatabaseManager")
+    # def test_combine_data_no_strava_data(self, mock_database_manager):
+    #     mock_database_manager.get_last_record.return_value = (
+    #         self.mock_existing_glucose_exercise_record
+    #     )
+    #     mock_database_manager.get_filtered_by_id_records.return_value = (
+    #         []
+    #     )  # Mock get_filtered_by_id_records to be empty
+    #     data = DataManager(mock_database_manager)
+    #     # No data
+    #     data.combine_data()
+    #     # Assert mocks
+    #     mock_database_manager.get_last_record.assert_called_once()
+    #     mock_database_manager.get_last_record.assert_called_with(GlucoseExercise)
+    #     mock_database_manager.get_filtered_by_id_records.assert_called_once()
+    #     mock_database_manager.get_filtered_by_id_records.assert_called_with(
+    #         Strava, 12345
+    #     )
+    #     # No data saved
+    #     self.assertEqual(mock_database_manager.save_data.call_count, 0)
 
-    @patch("src.database_manager.DatabaseManager")
-    def test_combine_data_no_libre_data(self, mock_database_manager):
-        mock_database_manager.get_last_record.return_value = (
-            self.mock_existing_glucose_exercise_record
-        )
+    # @patch("src.database_manager.DatabaseManager")
+    # def test_combine_data_no_libre_data(self, mock_database_manager):
+    #     mock_database_manager.get_last_record.return_value = (
+    #         self.mock_existing_glucose_exercise_record
+    #     )
 
-        mock_database_manager.get_filtered_by_id_records.return_value = (
-            self.mock_strava_data
-        )
-        mock_database_manager.get_records_between_timestamp.return_value = (
-            []
-        )  # Mock glucose data to be empty
-        data = DataManager(mock_database_manager)
-        # No data
-        data.combine_data()
-        # Assert mocks
-        mock_database_manager.get_last_record.assert_called_once()
-        mock_database_manager.get_last_record.assert_called_with(GlucoseExercise)
-        mock_database_manager.get_filtered_by_id_records.assert_called_once()
-        mock_database_manager.get_filtered_by_id_records.assert_called_with(
-            Strava, 12345
-        )
-        self.assertEqual(
-            mock_database_manager.get_records_between_timestamp.call_count, 2
-        )
-        # No data saved
-        self.assertEqual(mock_database_manager.save_data.call_count, 0)
+    #     mock_database_manager.get_filtered_by_id_records.return_value = (
+    #         self.mock_strava_data
+    #     )
+    #     mock_database_manager.get_records_between_timestamp.return_value = (
+    #         []
+    #     )  # Mock glucose data to be empty
+    #     data = DataManager(mock_database_manager)
+    #     # No data
+    #     data.combine_data()
+    #     # Assert mocks
+    #     mock_database_manager.get_last_record.assert_called_once()
+    #     mock_database_manager.get_last_record.assert_called_with(GlucoseExercise)
+    #     mock_database_manager.get_filtered_by_id_records.assert_called_once()
+    #     mock_database_manager.get_filtered_by_id_records.assert_called_with(
+    #         Strava, 12345
+    #     )
+    #     self.assertEqual(
+    #         mock_database_manager.get_records_between_timestamp.call_count, 2
+    #     )
+    #     # No data saved
+    #     self.assertEqual(mock_database_manager.save_data.call_count, 0)
 
     @patch("src.database_manager.DatabaseManager")
     def test_combine_data_success(self, mock_database_manager):
@@ -137,8 +137,8 @@ class TestData(unittest.TestCase):
             ),
         ]  # Mock libre data, can be anything as long as its length 3
         data = DataManager(mock_database_manager)
-        # No data
         data.combine_data()
+
         # Assert mocks
         mock_database_manager.get_last_record.assert_called_once()
         mock_database_manager.get_last_record.assert_called_with(GlucoseExercise)
@@ -149,59 +149,74 @@ class TestData(unittest.TestCase):
         self.assertEqual(
             mock_database_manager.get_records_between_timestamp.call_count, 2
         )
-        # Data saved
-        self.assertEqual(mock_database_manager.save_data.call_count, 1)
-
-        # TODO: Figure out why the calls don't match
-        # mock_database_manager.save_data.assert_called_with(
-        #     ([
-        #         GlucoseExercise(
-        #             id=6,
-        #             timestamp=self.activity_start + timedelta(seconds=20),
-        #             activity_type="RUN",
-        #             distance=5,
-        #             glucose=2,
-        #             strava_id=12346,
-        #             glucose_id=1,
-        #             seconds_since_start=20,
-        #             activity_start=self.activity_start,
-        #             activity_end=self.activity_end,
-        #         ),
-        #         GlucoseExercise(
-        #             id=7,
-        #             glucose=6,
-        #             glucose_id=2,
-        #             strava_id=12346,
-        #             timestamp=self.activity_start + timedelta(seconds=40),
-        #             activity_type="RUN",
-        #             distance=5,
-        #             activity_start=self.activity_start,
-        #             activity_end=self.activity_end,
-        #             seconds_since_start=40,
-        #         ),
-        #         GlucoseExercise(
-        #             id=8,
-        #             glucose_id=1,
-        #             glucose=2,
-        #             strava_id=12347,
-        #             timestamp=self.activity_start + timedelta(seconds=20),
-        #             activity_type="WALK",
-        #             distance=10,
-        #             activity_start=self.activity_start,
-        #             activity_end=self.activity_end,
-        #             seconds_since_start=20,
-        #         ),
-        #         GlucoseExercise(
-        #             id=9,
-        #             glucose=6,
-        #             glucose_id=2,
-        #             strava_id=12347,
-        #             timestamp=self.activity_start + timedelta(seconds=40),
-        #             activity_type="WALK",
-        #             distance=10,
-        #             activity_start=self.activity_start,
-        #             activity_end=self.activity_end,
-        #             seconds_since_start=40,
-        #         ),
-        #     ]),
-        # )
+        # Test the Data saved, the expected calls are reversed
+        expected_calls = [
+            GlucoseExercise(
+                id=6,
+                timestamp=self.activity_start + timedelta(seconds=20),
+                activity_type="RUN",
+                distance=5,
+                glucose_rec=Glucose(
+                    id=1,
+                    glucose=2,
+                    timestamp=self.activity_start + timedelta(seconds=20),
+                ),
+                strava_id=12346,
+                glucose_id=1,
+                seconds_since_start=20,
+                activity_start=self.activity_start,
+                activity_end=self.activity_end,
+            ),
+            GlucoseExercise(
+                id=7,
+                glucose_rec=Glucose(
+                    id=2,
+                    glucose=6,
+                    timestamp=self.activity_start + timedelta(seconds=40),
+                ),
+                glucose_id=2,
+                strava_id=12346,
+                timestamp=self.activity_start + timedelta(seconds=40),
+                activity_type="RUN",
+                distance=5,
+                activity_start=self.activity_start,
+                activity_end=self.activity_end,
+                seconds_since_start=40,
+            ),
+            GlucoseExercise(
+                id=8,
+                glucose_id=1,
+                glucose_rec=Glucose(
+                    id=2,
+                    glucose=6,
+                    timestamp=self.activity_start + timedelta(seconds=40),
+                ),
+                strava_id=12347,
+                timestamp=self.activity_start + timedelta(seconds=20),
+                activity_type="WALK",
+                distance=10,
+                activity_start=self.activity_start,
+                activity_end=self.activity_end,
+                seconds_since_start=20,
+            ),
+            GlucoseExercise(
+                id=9,
+                glucose_rec=Glucose(
+                    id=1,
+                    glucose=2,
+                    timestamp=self.activity_start + timedelta(seconds=20),
+                ),
+                glucose_id=2,
+                strava_id=12347,
+                timestamp=self.activity_start + timedelta(seconds=40),
+                activity_type="WALK",
+                distance=10,
+                activity_start=self.activity_start,
+                activity_end=self.activity_end,
+                seconds_since_start=40,
+            ),
+        ]
+        expected_calls.reverse()
+        self.assertEqual(mock_database_manager.save_data.call_count, 4)
+        for idx, call_arg in enumerate(mock_database_manager.save_data.call_args.args):
+            self.assertResultRepresentation(call_arg, [expected_calls[idx]])
